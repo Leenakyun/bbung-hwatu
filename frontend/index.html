@@ -125,20 +125,28 @@
                 </div>
             </div>
 
+            <section class="side-card dealer-selection-banner" id="dealerSelectionPanel" style="display:none;">
+                <div class="side-card-title">밤일낮짱</div>
+                <div id="dealerSelectionMode"></div>
+                <div id="dealerSelectionHistory"></div>
+                <button id="dealerDrawButton" class="accent-button full-button dealer-draw-priority" type="button" style="display:none;">선 정하기 카드 뽑기</button>
+                <button id="confirmOnlineStartButton" class="primary-button full-button" type="button" style="display:none;">본게임 시작</button>
+            </section>
+
             <div class="game-layout">
                 <section class="table-stage">
                     <div class="table-backdrop"></div>
                     <div id="players" class="players-rail"></div>
 
                     <div class="table-center">
-                        <button id="drawDeck" class="deck-visual deck-button" type="button" disabled aria-label="드로우 덱에서 카드 뽑기">
-                            <img src="/assets/cards/1_4.png" alt="드로우 덱">
-                            <span>카드 뽑기</span>
-                        </button>
                         <div class="discard-zone">
                             <span class="zone-label">버림패</span>
                             <div id="discardPile" class="discard-pile">없음</div>
                         </div>
+                        <button id="drawDeck" class="deck-visual deck-button" type="button" disabled aria-label="드로우 덱에서 카드 뽑기">
+                            <img src="/assets/cards/1_4.png" alt="드로우 덱">
+                            <span>카드 뽑기</span>
+                        </button>
                     </div>
 
                     <div class="reaction-dock">
@@ -172,14 +180,6 @@
                 </section>
 
                 <aside class="game-sidebar">
-                    <section class="side-card" id="dealerSelectionPanel" style="display:none;">
-                        <div class="side-card-title">밤일낮짱</div>
-                        <div id="dealerSelectionMode"></div>
-                        <div id="dealerSelectionHistory"></div>
-                        <button id="dealerDrawButton" class="accent-button full-button" type="button" style="display:none;">선 정하기 카드 뽑기</button>
-                        <button id="confirmOnlineStartButton" class="primary-button full-button" type="button" style="display:none;">본게임 시작</button>
-                    </section>
-
                     <section class="side-card" id="roundResultPanel" style="display:none;">
                         <div class="side-card-title">이번 판 결과</div>
                         <div id="roundResult"></div>

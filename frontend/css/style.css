@@ -1449,3 +1449,88 @@ body.modal-open {
         transform: translate(-10px, 12px);
     }
 }
+
+/* Gameplay v10: dealer draw priority + draw deck below recent discards */
+.dealer-selection-banner {
+    margin: 8px 0 10px;
+    padding: 10px 12px;
+    position: relative;
+    z-index: 35;
+}
+.dealer-selection-banner .side-card-title {
+    margin-bottom: 5px;
+}
+.dealer-selection-banner #dealerSelectionHistory {
+    max-height: 118px;
+    overflow: auto;
+}
+.dealer-draw-priority {
+    margin-top: 8px;
+    min-height: 46px;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+/* 버림패를 위, 드로우 덱을 바로 아래에 고정 */
+.table-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+.table-center .discard-zone {
+    order: 1;
+    width: 100%;
+}
+.table-center .deck-button {
+    order: 2;
+    transform: none;
+    margin-top: 1px;
+}
+.table-center .deck-button.is-drawable {
+    transform: translateY(-2px);
+}
+
+@media (max-width: 720px) {
+    .dealer-selection-banner {
+        margin: 5px 6px 7px;
+        padding: 8px 9px;
+    }
+    .dealer-selection-banner #dealerSelectionMode {
+        font-size: 11px;
+    }
+    .dealer-selection-banner #dealerSelectionHistory {
+        max-height: 82px;
+        font-size: 10px;
+    }
+    .dealer-draw-priority {
+        min-height: 48px;
+        margin-top: 6px;
+        font-size: 13px;
+    }
+
+    .table-center {
+        left: 50%;
+        top: 43%;
+        width: 58%;
+        height: 34%;
+        transform: translate(-50%, -50%);
+        gap: 3px;
+    }
+    .table-center .discard-zone {
+        height: auto;
+        min-height: 68px;
+        justify-content: flex-end;
+    }
+    .table-center .discard-pile {
+        justify-content: center;
+        min-height: 52px;
+        padding-top: 2px;
+    }
+    .table-center .deck-button,
+    .table-center .deck-button.is-drawable {
+        transform: none;
+        margin-top: 0;
+    }
+}
