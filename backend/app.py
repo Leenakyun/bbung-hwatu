@@ -764,6 +764,17 @@ def serialize_game(game):
             for item
             in state.dealer_selection_history
         ],
+        "dealer_selection_candidate_ids": list(
+            state.dealer_selection_candidate_ids
+        ),
+        "dealer_selection_current_draws": {
+            player_id: serialize_card(card)
+            for player_id, card
+            in state.dealer_selection_current_draws.items()
+        },
+        "dealer_selection_round_number": (
+            state.dealer_selection_round_number
+        ),
         "current_turn_player_id": (
             state.current_turn_player_id
         ),
@@ -2235,56 +2246,32 @@ def start_online_room(
             403,
         )
 
-    dealer_mode = str(
-        data.get(
-            "dealer_mode",
-            "",
-        )
-    ).upper()
-
-    if dealer_mode not in (
-        "DAY",
-        "NIGHT",
-    ):
-        return (
-            jsonify(
-                {
-                    "ok": False,
-                    "error": "DEALER_MODE_REQUIRED",
-                    "message": (
-                        "선 결정을 위해 "
-                        "DAY 또는 NIGHT가 필요합니다."
-                    ),
-                }
-            ),
-            400,
-        )
-
-    dealer_id, dealer_history = (
-        determine_initial_dealer_with_history(
-            players=state.players,
-            is_night=(
-                dealer_mode
-                == "NIGHT"
-            ),
-        )
+    # 밤일낮짱의 낮/밤은 방장이 고르지 않는다.
+    # 서버의 현재 시각을 한국 표준시(KST)로 변환해 자동 결정한다.
+    # 06:00~17:59 = DAY, 18:00~05:59 = NIGHT
+    kst = timezone(timedelta(hours=9))
+    kst_now = datetime.now(timezone.utc).astimezone(kst)
+    dealer_mode = (
+        "DAY"
+        if 6 <= kst_now.hour < 18
+        else "NIGHT"
     )
 
-    # 본게임을 바로 시작하지 않고
-    # 밤일낮짱 결과를 먼저 모든 참가자에게 공개한다.
-    state.dealer_selection_mode = (
-        dealer_mode
-    )
-    state.dealer_selection_history = (
-        dealer_history
-    )
-    state.dealer_id = dealer_id
+    state.dealer_selection_mode = dealer_mode
+    state.dealer_selection_history = []
+    state.dealer_selection_candidate_ids = [
+        player.player_id
+        for player in state.players
+    ]
+    state.dealer_selection_current_draws = {}
+    state.dealer_selection_round_number = 1
+    state.dealer_selection_deck = Deck()
+    state.dealer_selection_deck.shuffle()
+    state.dealer_id = None
     state.current_turn_player_id = None
     state.turn_phase = None
     state.deck = None
-    state.status = (
-        GameStatus.DEALER_SELECTION
-    )
+    state.status = GameStatus.DEALER_SELECTION
 
     owner_player = next(
         (
@@ -2309,6 +2296,120 @@ def start_online_room(
     return jsonify(
         response_data
     )
+
+
+@app.post(
+    "/api/online/rooms/<game_id>/dealer-selection/draw"
+)
+def draw_online_dealer_selection_card(
+    game_id: str,
+):
+    try:
+        game = manager.require_mode(
+            game_id,
+            GameMode.ONLINE,
+        )
+    except ValueError as error:
+        if str(error) == "GAME_NOT_FOUND":
+            return jsonify({
+                "ok": False,
+                "error": "GAME_NOT_FOUND",
+                "message": "온라인 방을 찾을 수 없습니다.",
+            }), 404
+        return jsonify({
+            "ok": False,
+            "error": "GAME_MODE_MISMATCH",
+            "message": "온라인 대전 방이 아닙니다.",
+        }), 400
+
+    state = game.state
+    if state.status != GameStatus.DEALER_SELECTION:
+        return jsonify({
+            "ok": False,
+            "error": "DEALER_SELECTION_NOT_ACTIVE",
+            "message": "현재 밤일낮짱 진행 중이 아닙니다.",
+        }), 400
+
+    player_id = request.headers.get("X-Player-ID")
+    if not player_id or not any(
+        player.player_id == player_id
+        for player in state.players
+    ):
+        return jsonify({
+            "ok": False,
+            "error": "PLAYER_NOT_IN_ROOM",
+            "message": "이 방의 참가자만 카드를 뽑을 수 있습니다.",
+        }), 403
+
+    if player_id not in state.dealer_selection_candidate_ids:
+        return jsonify({
+            "ok": False,
+            "error": "NOT_DEALER_SELECTION_CANDIDATE",
+            "message": "이번 추첨 대상이 아닙니다.",
+        }), 400
+
+    if player_id in state.dealer_selection_current_draws:
+        return jsonify({
+            "ok": False,
+            "error": "ALREADY_DREW_DEALER_CARD",
+            "message": "이번 추첨에서는 이미 카드를 뽑았습니다.",
+        }), 400
+
+    if state.dealer_selection_deck is None:
+        state.dealer_selection_deck = Deck()
+        state.dealer_selection_deck.shuffle()
+
+    drawn_card = state.dealer_selection_deck.draw()
+    state.dealer_selection_current_draws[player_id] = drawn_card
+
+    candidates = list(state.dealer_selection_candidate_ids)
+    round_complete = all(
+        candidate_id in state.dealer_selection_current_draws
+        for candidate_id in candidates
+    )
+
+    if round_complete:
+        draws = dict(state.dealer_selection_current_draws)
+        is_night = state.dealer_selection_mode == "NIGHT"
+        target_month = (
+            min(card.month for card in draws.values())
+            if is_night
+            else max(card.month for card in draws.values())
+        )
+        winner_ids = [
+            candidate_id
+            for candidate_id in candidates
+            if draws[candidate_id].month == target_month
+        ]
+
+        state.dealer_selection_history.append({
+            "round": state.dealer_selection_round_number,
+            "draws": draws,
+            "winner_ids": list(winner_ids),
+        })
+
+        if len(winner_ids) == 1:
+            state.dealer_id = winner_ids[0]
+            state.dealer_selection_candidate_ids = []
+            state.dealer_selection_current_draws = {}
+            state.dealer_selection_deck = None
+        else:
+            state.dealer_selection_candidate_ids = list(winner_ids)
+            state.dealer_selection_current_draws = {}
+            state.dealer_selection_round_number += 1
+            state.dealer_selection_deck = Deck()
+            state.dealer_selection_deck.shuffle()
+
+    touch_game_activity(game)
+    publish_online_state(game)
+
+    response_data = serialize_game_for_online_player(
+        game,
+        player_id,
+    )
+    response_data["viewer_player_id"] = player_id
+    response_data["drawn_dealer_card"] = serialize_card(drawn_card)
+    return jsonify(response_data)
 
 
 @app.post(
@@ -2403,6 +2504,9 @@ def confirm_online_game_start(
         )
 
     dealer_id = state.dealer_id
+    state.dealer_selection_candidate_ids = []
+    state.dealer_selection_current_draws = {}
+    state.dealer_selection_deck = None
 
     # 여기서부터 실제 본게임 48장 덱을 새로 만든다.
     state.deck = Deck()

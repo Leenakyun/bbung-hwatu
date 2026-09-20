@@ -91,6 +91,14 @@ class GameState:
     dealer_selection_history: list[dict] = field(
         default_factory=list
     )
+    dealer_selection_candidate_ids: list[str] = field(
+        default_factory=list
+    )
+    dealer_selection_current_draws: dict[str, Card] = field(
+        default_factory=dict
+    )
+    dealer_selection_round_number: int = 1
+    dealer_selection_deck: Deck | None = None
 
     current_turn_player_id: str | None = None
     turn_phase: TurnPhase | None = None

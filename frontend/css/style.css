@@ -1301,3 +1301,92 @@ body.modal-open {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Gameplay v6: fixed draw deck + compact recent discards */
+.room-time-rule {
+    align-self: center;
+    color: #9f9187;
+    font-size: 11px;
+    line-height: 1.4;
+}
+.deck-button {
+    appearance: none;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: default;
+    overflow: visible;
+}
+.deck-button:disabled {
+    opacity: .48;
+}
+.deck-button.is-drawable {
+    cursor: pointer;
+    opacity: 1;
+    transform: translateY(-1px);
+}
+.deck-button.is-drawable img {
+    box-shadow:
+        0 0 0 2px rgba(244,195,103,.55),
+        3px 4px 0 #3b2821,
+        0 0 24px rgba(244,195,103,.35);
+}
+.deck-button.is-drawable::after {
+    content: "눌러서 뽑기";
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 18px);
+    transform: translateX(-50%);
+    white-space: nowrap;
+    color: #e7c98f;
+    font-size: 9px;
+    font-weight: 800;
+}
+.discard-zone {
+    max-width: 390px;
+}
+.discard-pile {
+    flex-wrap: nowrap;
+}
+.dealer-current-round {
+    border-color: rgba(244,195,103,.35);
+    background: rgba(244,195,103,.06);
+}
+
+@media (max-width: 720px) {
+    .table-center {
+        grid-template-columns: 52px minmax(0, 1fr);
+        width: 70%;
+        gap: 10px;
+    }
+    .deck-visual {
+        position: relative;
+        width: 48px;
+        height: 72px;
+        flex: 0 0 48px;
+    }
+    .deck-visual img {
+        width: 46px;
+    }
+    .deck-visual span {
+        bottom: -13px;
+        width: 70px;
+    }
+    .discard-zone {
+        width: 100%;
+        max-width: none;
+    }
+    .discard-pile {
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        gap: 2px;
+    }
+    .discard-pile .card {
+        flex: 0 0 auto;
+    }
+    .deck-button.is-drawable::after {
+        top: calc(100% + 14px);
+        font-size: 7px;
+    }
+}

@@ -105,11 +105,8 @@
                         <button id="joinOnlineRoomButton" class="ghost-button" type="button">참가</button>
                     </div>
                     <div class="dealer-row">
-                        <select id="dealerModeSelect">
-                            <option value="DAY">낮 — 높은 월</option>
-                            <option value="NIGHT">밤 — 낮은 월</option>
-                        </select>
-                        <button id="startOnlineRoomButton" class="accent-button" type="button">밤일낮짱 시작</button>
+                        <div class="room-time-rule">밤일낮짱은 한국시간 기준으로 자동 설정됩니다.</div>
+                        <button id="startOnlineRoomButton" class="accent-button" type="button">게임 시작</button>
                     </div>
                     <div class="room-meta">내 플레이어 ID <span id="onlinePlayerId">없음</span></div>
                 </section>
@@ -124,7 +121,6 @@
                 </div>
                 <div class="toolbar-actions">
                     <button id="refreshButton" class="icon-text-button" type="button">↻ 상태 갱신</button>
-                    <button id="drawButton" class="primary-button draw-button" disabled>카드 뽑기</button>
                 </div>
             </div>
 
@@ -134,10 +130,10 @@
                     <div id="players" class="players-rail"></div>
 
                     <div class="table-center">
-                        <div class="deck-visual" aria-hidden="true">
-                            <img src="/assets/cards/1_4.png" alt="">
-                            <span>DECK</span>
-                        </div>
+                        <button id="drawDeck" class="deck-visual deck-button" type="button" disabled aria-label="드로우 덱에서 카드 뽑기">
+                            <img src="/assets/cards/1_4.png" alt="드로우 덱">
+                            <span>DRAW DECK</span>
+                        </button>
                         <div class="discard-zone">
                             <span class="zone-label">버림패</span>
                             <div id="discardPile" class="discard-pile">없음</div>
@@ -181,6 +177,7 @@
                         <div class="side-card-title">밤일낮짱</div>
                         <div id="dealerSelectionMode"></div>
                         <div id="dealerSelectionHistory"></div>
+                        <button id="dealerDrawButton" class="accent-button full-button" type="button" style="display:none;">선 정하기 카드 뽑기</button>
                         <button id="confirmOnlineStartButton" class="primary-button full-button" type="button" style="display:none;">본게임 시작</button>
                     </section>
 

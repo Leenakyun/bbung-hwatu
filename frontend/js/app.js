@@ -151,11 +151,6 @@ let currentGameId = null;
                 "createdRoomSummary"
             );
 
-        const dealerModeSelect =
-            document.getElementById(
-                "dealerModeSelect"
-            );
-
         const dealerSelectionPanel =
             document.getElementById(
                 "dealerSelectionPanel"
@@ -169,6 +164,11 @@ let currentGameId = null;
         const dealerSelectionHistory =
             document.getElementById(
                 "dealerSelectionHistory"
+            );
+
+        const dealerDrawButton =
+            document.getElementById(
+                "dealerDrawButton"
             );
 
         const confirmOnlineStartButton =
@@ -246,9 +246,9 @@ let currentGameId = null;
                 "message"
             );
 
-        const drawButton =
+        const drawDeck =
             document.getElementById(
-                "drawButton"
+                "drawDeck"
             );
 
         const stopPanel =
@@ -1335,9 +1335,6 @@ let currentGameId = null;
                                 {
                                     owner_id:
                                         currentOwnerId,
-                                    dealer_mode:
-                                        dealerModeSelect
-                                            .value,
                                 }
                             ),
                         }
@@ -1359,14 +1356,54 @@ let currentGameId = null;
                 );
 
                 showMessage(
-                    "밤일낮짱 결과가 공개되었습니다.\n"
-                    + "선 결정 후 방장이 본게임을 시작하세요."
+                    "밤일낮짱을 시작합니다.\n"
+                    + "각자 자신의 선 정하기 카드를 뽑아 주세요."
                 );
 
             } catch (error) {
                 showMessage(
                     `온라인 시작 오류: `
                     + `${error}`
+                );
+            }
+        }
+
+
+        async function drawDealerSelectionCard() {
+            if (
+                currentGameMode !== "ONLINE"
+                || !currentGameId
+                || !currentPlayerId
+            ) {
+                return;
+            }
+
+            try {
+                const response = await apiFetch(
+                    `/api/online/rooms/${currentGameId}/dealer-selection/draw`,
+                    { method: "POST" }
+                );
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showMessage(
+                        data.message
+                        || "선 정하기 카드 뽑기 실패"
+                    );
+                    return;
+                }
+
+                if (data.drawn_dealer_card) {
+                    playEffect("draw");
+                    showMessage(
+                        `밤일낮짱: ${data.drawn_dealer_card.month}월을 뽑았습니다.`
+                    );
+                }
+
+                renderGame(data);
+            } catch (error) {
+                showMessage(
+                    `선 정하기 카드 뽑기 오류: ${error}`
                 );
             }
         }
@@ -1667,8 +1704,12 @@ let currentGameId = null;
                     === humanPlayer
                         .player_id;
 
-            drawButton.disabled =
+            drawDeck.disabled =
                 !canDraw;
+            drawDeck.classList.toggle(
+                "is-drawable",
+                canDraw
+            );
 
             renderStop(
                 game,
@@ -1701,161 +1742,131 @@ let currentGameId = null;
             game
         ) {
             const active =
-                (
-                    game.status
-                    === "DEALER_SELECTION"
-                );
+                game.status
+                === "DEALER_SELECTION";
 
-            dealerSelectionPanel
-                .style.display =
-                active
-                    ? "block"
-                    : "none";
+            dealerSelectionPanel.style.display =
+                active ? "block" : "none";
 
             if (!active) {
-                dealerSelectionHistory
-                    .innerHTML = "";
-                confirmOnlineStartButton
-                    .style.display = "none";
+                dealerSelectionHistory.innerHTML = "";
+                dealerDrawButton.style.display = "none";
+                confirmOnlineStartButton.style.display = "none";
                 return;
             }
 
             const modeLabel =
-                game.dealer_selection_mode
-                === "NIGHT"
-                    ? "밤: 가장 낮은 월이 선"
-                    : "낮: 가장 높은 월이 선";
+                game.dealer_selection_mode === "NIGHT"
+                    ? "🌙 밤 — 가장 낮은 월이 선"
+                    : "☀️ 낮 — 가장 높은 월이 선";
 
             dealerSelectionMode.innerHTML = `
                 <div class="reaction-title">
                     ${modeLabel}
                 </div>
                 <div>
-                    동점이면 동점자끼리 다시 뽑습니다.
+                    한국시간 기준 자동 설정 · 각자 직접 1장씩 뽑습니다.
+                    동점이면 동점자만 다시 뽑습니다.
                 </div>
             `;
 
-            const playerMap =
-                new Map(
-                    game.players.map(
-                        player => [
-                            player.player_id,
-                            player,
-                        ]
-                    )
-                );
+            const playerMap = new Map(
+                game.players.map(
+                    player => [player.player_id, player]
+                )
+            );
 
-            const history =
-                game.dealer_selection_history
-                || [];
+            dealerSelectionHistory.innerHTML = "";
 
-            dealerSelectionHistory.innerHTML =
-                "";
-
-            for (const round of history) {
-                const block =
-                    document.createElement(
-                        "div"
-                    );
-
+            for (
+                const round
+                of (game.dealer_selection_history || [])
+            ) {
+                const block = document.createElement("div");
                 block.className = "player";
 
-                const cards = Object.entries(
-                    round.draws || {}
-                )
-                    .map(
-                        ([playerId, card]) => {
-                            const player =
-                                playerMap.get(
-                                    playerId
-                                );
-
-                            const name =
-                                player
-                                    ? player.nickname
-                                    : playerId;
-
-                            const isWinner =
-                                (
-                                    round.winner_ids
-                                    || []
-                                ).includes(
-                                    playerId
-                                );
-
-                            return `
-                                <div>
-                                    <strong>
-                                        ${name}
-                                    </strong>
-                                    :
-                                    ${card.month}월
-                                    ${isWinner ? "★" : ""}
-                                </div>
-                            `;
-                        }
-                    )
+                const cards = Object.entries(round.draws || {})
+                    .map(([playerId, card]) => {
+                        const player = playerMap.get(playerId);
+                        const name = player ? player.nickname : playerId;
+                        const isWinner = (round.winner_ids || [])
+                            .includes(playerId);
+                        return `
+                            <div>
+                                <strong>${name}</strong> :
+                                ${card.month}월
+                                ${isWinner ? "★" : ""}
+                            </div>
+                        `;
+                    })
                     .join("");
 
-                const tied =
-                    (
-                        round.winner_ids
-                        || []
-                    ).length > 1;
-
+                const tied = (round.winner_ids || []).length > 1;
                 block.innerHTML = `
-                    <div>
-                        <strong>
-                            ${round.round}차 추첨
-                        </strong>
-                    </div>
+                    <div><strong>${round.round}차 추첨</strong></div>
                     ${cards}
-                    <div>
-                        ${
-                            tied
-                                ? "동점 → 재추첨"
-                                : "선 결정"
-                        }
-                    </div>
+                    <div>${tied ? "동점 → 재추첨" : "선 결정"}</div>
                 `;
-
-                dealerSelectionHistory
-                    .appendChild(
-                        block
-                    );
+                dealerSelectionHistory.appendChild(block);
             }
 
-            const dealer =
-                game.players.find(
-                    player =>
-                        player.player_id
-                        === game.dealer_id
-                );
+            const currentDraws =
+                game.dealer_selection_current_draws || {};
+            const candidates =
+                game.dealer_selection_candidate_ids || [];
+
+            if (!game.dealer_id && candidates.length) {
+                const currentBlock = document.createElement("div");
+                currentBlock.className = "player dealer-current-round";
+                const rows = candidates.map(playerId => {
+                    const player = playerMap.get(playerId);
+                    const name = player ? player.nickname : playerId;
+                    const card = currentDraws[playerId];
+                    return `
+                        <div>
+                            <strong>${name}</strong> :
+                            ${card ? `${card.month}월` : "대기 중"}
+                        </div>
+                    `;
+                }).join("");
+                currentBlock.innerHTML = `
+                    <div><strong>${game.dealer_selection_round_number || 1}차 진행 중</strong></div>
+                    ${rows}
+                `;
+                dealerSelectionHistory.appendChild(currentBlock);
+            }
+
+            const dealer = game.players.find(
+                player => player.player_id === game.dealer_id
+            );
 
             if (dealer) {
-                const result =
-                    document.createElement(
-                        "div"
-                    );
-
-                result.className =
-                    "reaction-title";
-
-                result.textContent =
-                    `선: ${dealer.nickname}`;
-
-                dealerSelectionHistory
-                    .appendChild(
-                        result
-                    );
+                const result = document.createElement("div");
+                result.className = "reaction-title";
+                result.textContent = `선: ${dealer.nickname}`;
+                dealerSelectionHistory.appendChild(result);
             }
 
-            confirmOnlineStartButton
-                .style.display =
-                (
-                    currentOwnerId
-                    && game.dealer_id
-                )
+            const isCandidate =
+                currentPlayerId
+                && candidates.includes(currentPlayerId);
+            const alreadyDrew =
+                currentPlayerId
+                && Boolean(currentDraws[currentPlayerId]);
+
+            dealerDrawButton.style.display =
+                (!game.dealer_id && isCandidate)
+                    ? "inline-block"
+                    : "none";
+            dealerDrawButton.disabled =
+                !isCandidate || alreadyDrew;
+            dealerDrawButton.textContent =
+                alreadyDrew
+                    ? "다른 플레이어를 기다리는 중"
+                    : "선 정하기 카드 뽑기";
+
+            confirmOnlineStartButton.style.display =
+                (currentOwnerId && game.dealer_id)
                     ? "inline-block"
                     : "none";
         }
@@ -2339,9 +2350,12 @@ let currentGameId = null;
                 return;
             }
 
+            const visibleCards =
+                cards.slice(-5);
+
             for (
                 const card
-                of cards
+                of visibleCards
             ) {
                 const element =
                     document
@@ -3924,10 +3938,16 @@ let currentGameId = null;
                 refreshGame
             );
 
-        drawButton
+        drawDeck
             .addEventListener(
                 "click",
                 drawCard
+            );
+
+        dealerDrawButton
+            .addEventListener(
+                "click",
+                drawDealerSelectionCard
             );
 
         stopCallButton

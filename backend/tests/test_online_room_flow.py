@@ -79,6 +79,44 @@ class OnlineRoomFlowTests(
         )
         return response.get_json()
 
+    def finish_dealer_selection(self, game_id):
+        """모든 현재 후보가 직접 한 장씩 뽑아 선을 확정한다."""
+        last_data = None
+        for _ in range(20):
+            game = app_module.manager.get_game(game_id)
+            state = game.state
+            if state.dealer_id is not None:
+                return last_data or app_module.serialize_game(game)
+
+            candidate_ids = list(
+                state.dealer_selection_candidate_ids
+            )
+            self.assertTrue(candidate_ids)
+
+            already_drawn = set(
+                state.dealer_selection_current_draws
+            )
+            for player_id in candidate_ids:
+                if player_id in already_drawn:
+                    continue
+                response = self.client.post(
+                    f"/api/online/rooms/{game_id}/dealer-selection/draw",
+                    headers={
+                        "X-Player-ID": player_id,
+                    },
+                )
+                self.assertEqual(
+                    response.status_code,
+                    200,
+                    response.get_data(as_text=True),
+                )
+                last_data = response.get_json()
+
+            if last_data and last_data.get("dealer_id"):
+                return last_data
+
+        self.fail("밤일낮짱 선 결정이 제한 횟수 안에 끝나지 않았습니다.")
+
     def test_create_online_room_waiting(self):
         response = self.client.post(
             "/api/online/rooms",
@@ -484,11 +522,16 @@ class OnlineRoomFlowTests(
             len(selection["players"]),
             3,
         )
-        self.assertTrue(
+        self.assertEqual(
             selection[
                 "dealer_selection_history"
-            ]
+            ],
+            [],
         )
+        self.assertIsNone(selection["dealer_id"])
+
+        selection = self.finish_dealer_selection(game_id)
+        self.assertIsNotNone(selection["dealer_id"])
 
         confirm = self.client.post(
             f"/api/online/rooms/{game_id}"
@@ -626,14 +669,18 @@ class OnlineRoomFlowTests(
             selection["status"],
             "DEALER_SELECTION",
         )
-        self.assertIsNotNone(
+        self.assertIsNone(
             selection["dealer_id"],
         )
-        self.assertTrue(
+        self.assertEqual(
             selection[
                 "dealer_selection_history"
             ],
+            [],
         )
+
+        selection = self.finish_dealer_selection(game_id)
+        self.assertIsNotNone(selection["dealer_id"])
 
         confirm = self.client.post(
             f"/api/online/rooms/{game_id}"
@@ -769,11 +816,16 @@ class OnlineRoomFlowTests(
 
         self.assertEqual(
             response.status_code,
-            400,
+            200,
+        )
+        data = response.get_json()
+        self.assertIn(
+            data["dealer_selection_mode"],
+            ("DAY", "NIGHT"),
         )
         self.assertEqual(
-            response.get_json()["error"],
-            "DEALER_MODE_REQUIRED",
+            data["dealer_selection_history"],
+            [],
         )
 
     def test_started_room_rejects_new_join(self):
@@ -854,9 +906,9 @@ class OnlineRoomFlowTests(
             f"/api/online/rooms/{game_id}/start",
             json={
                 "owner_id": "OWNER-1",
-                "dealer_mode": "DAY",
             },
         )
+        self.finish_dealer_selection(game_id)
 
         self.client.post(
             f"/api/online/rooms/{game_id}"
@@ -1063,13 +1115,13 @@ class OnlineRoomFlowTests(
                 joined["viewer_player_id"]
             )
 
-        start = self.client.post(
+        self.client.post(
             f"/api/online/rooms/{game_id}/start",
             json={
                 "owner_id": "OWNER-1",
-                "dealer_mode": "DAY",
             },
-        ).get_json()
+        )
+        self.finish_dealer_selection(game_id)
 
         confirm = self.client.post(
             f"/api/online/rooms/{game_id}"
@@ -1135,98 +1187,52 @@ class OnlineRoomFlowTests(
                 "max_players": 3,
             },
         ).get_json()
-
         game_id = room["game_id"]
-
-        for nickname in (
-            "친구1",
-            "친구2",
-        ):
+        for nickname in ("친구1", "친구2"):
             self.client.post(
                 f"/api/online/rooms/{game_id}/join",
-                json={
-                    "nickname": nickname,
-                },
+                json={"nickname": nickname},
             )
 
         response = self.client.post(
             f"/api/online/rooms/{game_id}/start",
-            json={
-                "owner_id": "OWNER-1",
-                "dealer_mode": "DAY",
-            },
+            json={"owner_id": "OWNER-1"},
         )
-
+        self.assertEqual(response.status_code, 200)
+        initial = response.get_json()
+        self.assertEqual(initial["status"], "DEALER_SELECTION")
+        self.assertIn(initial["dealer_selection_mode"], ("DAY", "NIGHT"))
+        self.assertEqual(initial["dealer_selection_history"], [])
+        self.assertIsNone(initial["dealer_id"])
         self.assertEqual(
-            response.status_code,
-            200,
+            set(initial["dealer_selection_candidate_ids"]),
+            {player["player_id"] for player in initial["players"]},
         )
 
-        data = response.get_json()
+        data = self.finish_dealer_selection(game_id)
+        self.assertIsNotNone(data["dealer_id"])
+        self.assertTrue(data["dealer_selection_history"])
 
-        self.assertEqual(
-            data["status"],
-            "DEALER_SELECTION",
-        )
-        self.assertEqual(
-            data["dealer_selection_mode"],
-            "DAY",
-        )
-
-        history = (
-            data["dealer_selection_history"]
-        )
-
-        self.assertTrue(
-            history
-        )
-
-        for draw_round in history:
+        is_night = data["dealer_selection_mode"] == "NIGHT"
+        for draw_round in data["dealer_selection_history"]:
             months = {
                 player_id: card["month"]
-                for player_id, card
-                in draw_round["draws"].items()
+                for player_id, card in draw_round["draws"].items()
             }
-
-            target = max(
-                months.values()
-            )
-
+            target = min(months.values()) if is_night else max(months.values())
             expected_winners = {
                 player_id
-                for player_id, month
-                in months.items()
+                for player_id, month in months.items()
                 if month == target
             }
-
             self.assertEqual(
-                set(
-                    draw_round["winner_ids"]
-                ),
+                set(draw_round["winner_ids"]),
                 expected_winners,
             )
 
-        self.assertEqual(
-            len(
-                history[-1]["winner_ids"]
-            ),
-            1,
-        )
-        self.assertEqual(
-            history[-1]["winner_ids"][0],
-            data["dealer_id"],
-        )
-
-        # 밤일낮짱 단계에서는 아직 본게임 패를 나누지 않는다.
-        self.assertEqual(
-            data["deck_count"],
-            0,
-        )
+        self.assertEqual(data["deck_count"], 0)
         self.assertTrue(
-            all(
-                player["hand_count"] == 0
-                for player in data["players"]
-            )
+            all(player["hand_count"] == 0 for player in data["players"])
         )
 
     def test_dealer_selection_minigame_night_rule(self):
@@ -1238,59 +1244,43 @@ class OnlineRoomFlowTests(
                 "max_players": 3,
             },
         ).get_json()
-
         game_id = room["game_id"]
-
-        for nickname in (
-            "친구1",
-            "친구2",
-        ):
+        for nickname in ("친구1", "친구2"):
             self.client.post(
                 f"/api/online/rooms/{game_id}/join",
-                json={
-                    "nickname": nickname,
-                },
+                json={"nickname": nickname},
             )
 
         data = self.client.post(
             f"/api/online/rooms/{game_id}/start",
-            json={
-                "owner_id": "OWNER-1",
-                "dealer_mode": "NIGHT",
-            },
+            json={"owner_id": "OWNER-1"},
         ).get_json()
+        first_player_id = data["dealer_selection_candidate_ids"][0]
 
+        first_draw = self.client.post(
+            f"/api/online/rooms/{game_id}/dealer-selection/draw",
+            headers={"X-Player-ID": first_player_id},
+        )
+        self.assertEqual(first_draw.status_code, 200)
+        first_data = first_draw.get_json()
+        self.assertIn(
+            first_player_id,
+            first_data["dealer_selection_current_draws"],
+        )
+        self.assertIsNone(first_data["dealer_id"])
+
+        duplicate = self.client.post(
+            f"/api/online/rooms/{game_id}/dealer-selection/draw",
+            headers={"X-Player-ID": first_player_id},
+        )
+        self.assertEqual(duplicate.status_code, 400)
         self.assertEqual(
-            data["dealer_selection_mode"],
-            "NIGHT",
+            duplicate.get_json()["error"],
+            "ALREADY_DREW_DEALER_CARD",
         )
 
-        for draw_round in (
-            data["dealer_selection_history"]
-        ):
-            months = {
-                player_id: card["month"]
-                for player_id, card
-                in draw_round["draws"].items()
-            }
-
-            target = min(
-                months.values()
-            )
-
-            expected_winners = {
-                player_id
-                for player_id, month
-                in months.items()
-                if month == target
-            }
-
-            self.assertEqual(
-                set(
-                    draw_round["winner_ids"]
-                ),
-                expected_winners,
-            )
+        final = self.finish_dealer_selection(game_id)
+        self.assertIsNotNone(final["dealer_id"])
 
     def test_only_owner_can_confirm_after_dealer_selection(self):
         room = self.client.post(
@@ -1316,10 +1306,9 @@ class OnlineRoomFlowTests(
 
         self.client.post(
             f"/api/online/rooms/{game_id}/start",
-            json={
-                "dealer_mode": "DAY",
-            },
+            json={},
         )
+        self.finish_dealer_selection(game_id)
 
         self.client.post(
             "/api/auth/register",
@@ -1393,9 +1382,9 @@ class OnlineRoomFlowTests(
                 json={
                     "owner_id":
                         f"OWNER-{attempt}",
-                    "dealer_mode": "DAY",
                 },
             )
+            self.finish_dealer_selection(game_id)
 
             confirm = self.client.post(
                 f"/api/online/rooms/{game_id}"
