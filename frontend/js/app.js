@@ -101,6 +101,56 @@ let currentGameId = null;
                 "onlineRoomId"
             );
 
+        const roomCreateModal =
+            document.getElementById(
+                "roomCreateModal"
+            );
+
+        const roomShareModal =
+            document.getElementById(
+                "roomShareModal"
+            );
+
+        const roomJoinModal =
+            document.getElementById(
+                "roomJoinModal"
+            );
+
+        const rulesModal =
+            document.getElementById(
+                "rulesModal"
+            );
+
+        const roomPasswordCreateWrap =
+            document.getElementById(
+                "roomPasswordCreateWrap"
+            );
+
+        const roomPasswordCreate =
+            document.getElementById(
+                "roomPasswordCreate"
+            );
+
+        const joinRoomId =
+            document.getElementById(
+                "joinRoomId"
+            );
+
+        const roomPasswordJoin =
+            document.getElementById(
+                "roomPasswordJoin"
+            );
+
+        const inviteLinkInput =
+            document.getElementById(
+                "inviteLinkInput"
+            );
+
+        const createdRoomSummary =
+            document.getElementById(
+                "createdRoomSummary"
+            );
+
         const dealerModeSelect =
             document.getElementById(
                 "dealerModeSelect"
@@ -827,6 +877,168 @@ let currentGameId = null;
         }
 
 
+        function openModal(modal) {
+            if (!modal) {
+                return;
+            }
+
+            modal.hidden = false;
+            document.body.classList.add(
+                "modal-open"
+            );
+        }
+
+
+        function closeModal(modal) {
+            if (!modal) {
+                return;
+            }
+
+            modal.hidden = true;
+
+            if (
+                !document.querySelector(
+                    ".modal-backdrop:not([hidden])"
+                )
+            ) {
+                document.body.classList.remove(
+                    "modal-open"
+                );
+            }
+        }
+
+
+        function getSelectedRoomPrivacy() {
+            const selected =
+                document.querySelector(
+                    'input[name="roomPrivacy"]:checked'
+                );
+
+            return selected
+                ? selected.value
+                : "PUBLIC";
+        }
+
+
+        function normalizeRoomId(value) {
+            const raw = String(
+                value || ""
+            ).trim();
+
+            if (!raw) {
+                return "";
+            }
+
+            try {
+                const parsed = new URL(
+                    raw,
+                    window.location.href
+                );
+                const fromQuery =
+                    parsed.searchParams.get(
+                        "room"
+                    );
+
+                if (fromQuery) {
+                    return fromQuery
+                        .trim()
+                        .toUpperCase();
+                }
+            } catch (_error) {
+                // 일반 방 ID 입력이면 아래에서 그대로 처리한다.
+            }
+
+            return raw.toUpperCase();
+        }
+
+
+        function buildInviteLink(gameId) {
+            const inviteUrl = new URL(
+                window.location.href
+            );
+
+            inviteUrl.search = "";
+            inviteUrl.hash = "";
+            inviteUrl.searchParams.set(
+                "room",
+                gameId
+            );
+
+            return inviteUrl.toString();
+        }
+
+
+        function openCreateRoomModal() {
+            if (!authToken) {
+                showMessage(
+                    "온라인 대전은 로그인이 필요합니다."
+                );
+                return;
+            }
+
+            roomPasswordCreate.value = "";
+            roomPasswordCreateWrap.hidden =
+                getSelectedRoomPrivacy()
+                !== "PRIVATE";
+            openModal(
+                roomCreateModal
+            );
+        }
+
+
+        function openJoinRoomModal() {
+            if (!authToken) {
+                showMessage(
+                    "온라인 대전은 로그인이 필요합니다."
+                );
+                return;
+            }
+
+            const roomId = normalizeRoomId(
+                onlineRoomId.value
+            );
+
+            if (!roomId) {
+                showMessage(
+                    "참가할 방 ID 또는 초대 링크를 입력해 주세요."
+                );
+                return;
+            }
+
+            joinRoomId.value = roomId;
+            roomPasswordJoin.value = "";
+            openModal(
+                roomJoinModal
+            );
+        }
+
+
+        async function copyInviteLink() {
+            const link =
+                inviteLinkInput.value;
+
+            if (!link) {
+                return;
+            }
+
+            try {
+                await navigator.clipboard
+                    .writeText(
+                        link
+                    );
+            } catch (_error) {
+                inviteLinkInput.select();
+                document.execCommand(
+                    "copy"
+                );
+            }
+
+            showMessage(
+                "초대 링크를 복사했습니다."
+            );
+        }
+
+
         function showMessage(message) {
             messageElement.textContent = message;
             messageElement.classList.add("is-visible");
@@ -856,6 +1068,25 @@ let currentGameId = null;
                     return;
                 }
 
+                const roomPrivacy =
+                    getSelectedRoomPrivacy();
+
+                const isPrivate =
+                    roomPrivacy === "PRIVATE";
+
+                const roomPassword =
+                    roomPasswordCreate.value;
+
+                if (
+                    isPrivate
+                    && roomPassword.length < 4
+                ) {
+                    showMessage(
+                        "비밀방 비밀번호는 4자 이상 입력해 주세요."
+                    );
+                    return;
+                }
+
                 const response =
                     await apiFetch(
                         "/api/online/rooms",
@@ -876,6 +1107,12 @@ let currentGameId = null;
                                             onlineMaxPlayers
                                                 .value
                                         ),
+                                    is_private:
+                                        isPrivate,
+                                    room_password:
+                                        isPrivate
+                                        ? roomPassword
+                                        : "",
                                 }
                             ),
                         }
@@ -914,6 +1151,28 @@ let currentGameId = null;
 
                 connectRealtime();
 
+                closeModal(
+                    roomCreateModal
+                );
+
+                inviteLinkInput.value =
+                    buildInviteLink(
+                        currentGameId
+                    );
+
+                createdRoomSummary.textContent =
+                    `${currentGameId} · `
+                    + `${data.max_players}인 · `
+                    + (
+                        data.is_private
+                        ? "비밀방"
+                        : "공개방"
+                    );
+
+                openModal(
+                    roomShareModal
+                );
+
                 showMessage(
                     `온라인 방 생성: `
                     + `${currentGameId}\n`
@@ -944,9 +1203,10 @@ let currentGameId = null;
             }
 
             const roomId =
-                onlineRoomId.value
-                    .trim()
-                    .toUpperCase();
+                normalizeRoomId(
+                    joinRoomId.value
+                    || onlineRoomId.value
+                );
 
             if (!roomId) {
                 showMessage(
@@ -979,6 +1239,9 @@ let currentGameId = null;
                                         nickname,
                                     client_id:
                                         onlineClientId,
+                                    room_password:
+                                        roomPasswordJoin
+                                            .value,
                                 }
                             ),
                         }
@@ -1003,9 +1266,16 @@ let currentGameId = null;
                 currentPlayerId =
                     data.viewer_player_id;
 
+                onlineRoomId.value =
+                    currentGameId;
+
                 onlinePlayerId.textContent =
                     currentPlayerId
                     || "없음";
+
+                closeModal(
+                    roomJoinModal
+                );
 
                 renderGame(
                     data
@@ -3476,6 +3746,32 @@ let currentGameId = null;
 
         refreshAuth();
 
+        const invitedRoomId =
+            normalizeRoomId(
+                new URLSearchParams(
+                    window.location.search
+                ).get(
+                    "room"
+                )
+            );
+
+        if (invitedRoomId) {
+            onlineRoomId.value =
+                invitedRoomId;
+            joinRoomId.value =
+                invitedRoomId;
+
+            if (authToken) {
+                openModal(
+                    roomJoinModal
+                );
+            } else {
+                showMessage(
+                    "초대받은 방이 있습니다. 로그인 후 참가를 눌러 주세요."
+                );
+            }
+        }
+
         confirmOnlineStartButton
             .addEventListener(
                 "click",
@@ -3488,7 +3784,7 @@ let currentGameId = null;
             )
             .addEventListener(
                 "click",
-                createOnlineRoom
+                openCreateRoomModal
             );
 
         document
@@ -3497,7 +3793,108 @@ let currentGameId = null;
             )
             .addEventListener(
                 "click",
+                openJoinRoomModal
+            );
+
+        document
+            .getElementById(
+                "confirmCreateOnlineRoomButton"
+            )
+            .addEventListener(
+                "click",
+                createOnlineRoom
+            );
+
+        document
+            .getElementById(
+                "confirmJoinOnlineRoomButton"
+            )
+            .addEventListener(
+                "click",
                 joinOnlineRoom
+            );
+
+        document
+            .getElementById(
+                "copyInviteLinkButton"
+            )
+            .addEventListener(
+                "click",
+                copyInviteLink
+            );
+
+        document
+            .getElementById(
+                "rulesButton"
+            )
+            .addEventListener(
+                "click",
+                () => openModal(
+                    rulesModal
+                )
+            );
+
+        document
+            .querySelectorAll(
+                '[data-close-modal]'
+            )
+            .forEach(
+                button => {
+                    button.addEventListener(
+                        "click",
+                        () => closeModal(
+                            document.getElementById(
+                                button.dataset.closeModal
+                            )
+                        )
+                    );
+                }
+            );
+
+        document
+            .querySelectorAll(
+                '.modal-backdrop'
+            )
+            .forEach(
+                modal => {
+                    modal.addEventListener(
+                        "click",
+                        event => {
+                            if (
+                                event.target
+                                === modal
+                            ) {
+                                closeModal(
+                                    modal
+                                );
+                            }
+                        }
+                    );
+                }
+            );
+
+        document
+            .querySelectorAll(
+                'input[name="roomPrivacy"]'
+            )
+            .forEach(
+                radio => {
+                    radio.addEventListener(
+                        "change",
+                        () => {
+                            const isPrivate =
+                                getSelectedRoomPrivacy()
+                                === "PRIVATE";
+
+                            roomPasswordCreateWrap.hidden =
+                                !isPrivate;
+
+                            if (!isPrivate) {
+                                roomPasswordCreate.value = "";
+                            }
+                        }
+                    );
+                }
             );
 
         document

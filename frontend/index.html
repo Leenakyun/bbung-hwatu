@@ -21,6 +21,7 @@
         </button>
 
         <div class="topbar-actions">
+            <button id="rulesButton" class="text-button rules-open-button" type="button">룰 설명서</button>
             <span id="authStatus" class="auth-pill">로그인 안 됨</span>
             <button id="musicToggle" class="icon-button" type="button" title="배경음악">♪</button>
             <button id="soundToggle" class="icon-button" type="button" title="효과음">♬</button>
@@ -33,12 +34,6 @@
                 <div class="hero-copy">
                     <span class="eyebrow">우리 집 룰 그대로</span>
                     <h1>패는 가볍게,<br><em>한 방은 세게.</em></h1>
-                    <p>3–6인 가족 룰 기반 뻥 화투. 온라인 대전과 AI 연습을 한 화면에서.</p>
-                    <div class="hero-badges">
-                        <span>20 라운드</span>
-                        <span>실시간 대전</span>
-                        <span>모바일 대응</span>
-                    </div>
                 </div>
                 <div class="hero-card-fan" aria-hidden="true">
                     <img src="/assets/cards/1_1.png" alt="">
@@ -98,24 +93,15 @@
                         </div>
                         <span id="realtimeStatus" class="connection-pill">연결 안 됨</span>
                     </div>
-                    <div class="two-column-fields">
+                    <div class="field-stack">
                         <div>
                             <label class="field-label" for="onlineNickname">닉네임</label>
                             <input id="onlineNickname" type="text" value="플레이어" maxlength="20">
                         </div>
-                        <div>
-                            <label class="field-label" for="onlineMaxPlayers">최대 인원</label>
-                            <select id="onlineMaxPlayers">
-                                <option value="3">3명</option>
-                                <option value="4">4명</option>
-                                <option value="5">5명</option>
-                                <option value="6">6명</option>
-                            </select>
-                        </div>
                     </div>
                     <button id="createOnlineRoomButton" class="primary-button full-button" type="button">방 만들기</button>
                     <div class="join-row">
-                        <input id="onlineRoomId" type="text" placeholder="방 ID 입력">
+                        <input id="onlineRoomId" type="text" placeholder="방 ID 또는 초대 링크">
                         <button id="joinOnlineRoomButton" class="ghost-button" type="button">참가</button>
                     </div>
                     <div class="dealer-row">
@@ -247,6 +233,98 @@
             </div>
         </section>
     </main>
+
+    <div id="roomCreateModal" class="modal-backdrop" hidden>
+        <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="roomCreateTitle">
+            <button class="modal-close" data-close-modal="roomCreateModal" type="button" aria-label="닫기">×</button>
+            <span class="kicker">ONLINE ROOM</span>
+            <h2 id="roomCreateTitle">온라인 방 만들기</h2>
+            <div class="modal-field-grid">
+                <div>
+                    <label class="field-label" for="onlineMaxPlayers">인원 수</label>
+                    <select id="onlineMaxPlayers">
+                        <option value="3">3명</option>
+                        <option value="4">4명</option>
+                        <option value="5">5명</option>
+                        <option value="6">6명</option>
+                    </select>
+                </div>
+                <div>
+                    <span class="field-label">방 설정</span>
+                    <div class="segmented-control">
+                        <label><input type="radio" name="roomPrivacy" value="PUBLIC" checked><span>공개방</span></label>
+                        <label><input type="radio" name="roomPrivacy" value="PRIVATE"><span>비밀방</span></label>
+                    </div>
+                </div>
+            </div>
+            <div id="roomPasswordCreateWrap" class="modal-password-field" hidden>
+                <label class="field-label" for="roomPasswordCreate">비밀방 비밀번호</label>
+                <input id="roomPasswordCreate" type="password" minlength="4" maxlength="30" placeholder="4자 이상">
+            </div>
+            <button id="confirmCreateOnlineRoomButton" class="primary-button full-button" type="button">방 생성</button>
+        </section>
+    </div>
+
+    <div id="roomShareModal" class="modal-backdrop" hidden>
+        <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="roomShareTitle">
+            <button class="modal-close" data-close-modal="roomShareModal" type="button" aria-label="닫기">×</button>
+            <span class="kicker">INVITE</span>
+            <h2 id="roomShareTitle">방이 만들어졌어요</h2>
+            <p class="modal-description">아래 링크를 가족에게 보내면 방 번호가 자동으로 입력됩니다. 비밀방 비밀번호는 링크에 포함되지 않습니다.</p>
+            <div class="invite-link-row">
+                <input id="inviteLinkInput" type="text" readonly>
+                <button id="copyInviteLinkButton" class="accent-button" type="button">링크 복사</button>
+            </div>
+            <div id="createdRoomSummary" class="room-summary"></div>
+            <button class="ghost-button full-button" data-close-modal="roomShareModal" type="button">닫기</button>
+        </section>
+    </div>
+
+    <div id="roomJoinModal" class="modal-backdrop" hidden>
+        <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="roomJoinTitle">
+            <button class="modal-close" data-close-modal="roomJoinModal" type="button" aria-label="닫기">×</button>
+            <span class="kicker">JOIN ROOM</span>
+            <h2 id="roomJoinTitle">온라인 방 참가</h2>
+            <div class="field-stack">
+                <div>
+                    <label class="field-label" for="joinRoomId">방 ID</label>
+                    <input id="joinRoomId" type="text" placeholder="ROOM-001">
+                </div>
+                <div>
+                    <label class="field-label" for="roomPasswordJoin">비밀번호 <span class="field-hint">비밀방만 입력</span></label>
+                    <input id="roomPasswordJoin" type="password" maxlength="30" placeholder="공개방이면 비워두세요">
+                </div>
+            </div>
+            <button id="confirmJoinOnlineRoomButton" class="primary-button full-button" type="button">방 참가</button>
+        </section>
+    </div>
+
+    <div id="rulesModal" class="modal-backdrop" hidden>
+        <section class="modal-card rules-manual-modal" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+            <button class="modal-close" data-close-modal="rulesModal" type="button" aria-label="닫기">×</button>
+            <span class="kicker">RULE BOOK</span>
+            <h2 id="rulesTitle">뻥 화투 룰 설명서</h2>
+            <div class="rules-manual-content">
+                <h3>기본 진행</h3>
+                <p>3~6인, 총 20라운드. 누적 점수가 가장 낮은 사람이 최종 승자입니다. 첫 선은 밤일낮짱으로 정하고, 이후에는 이전 라운드 승자가 선이 됩니다.</p>
+                <h3>턴</h3>
+                <p>선은 6장을 받은 뒤 뽑지 않고 1장을 버립니다. 이후 플레이어는 덱을 눌러 1장을 뽑고 1장을 버립니다.</p>
+                <h3>STOP</h3>
+                <p>6장 상태에서 직접 선언합니다. 연속 6개월, 합 60 이상, 또이또이, -100/-200 등의 조건이 있으며 잘못 선언하면 서버가 거절합니다.</p>
+                <h3>뻥</h3>
+                <p>상대가 버린 월과 같은 월 카드 2장을 가지고 있을 때, 그 2장과 추가 버림 1장을 내며 뻥할 수 있습니다. 반응 시간은 짧게 열립니다.</p>
+                <h3>폭탄</h3>
+                <p>같은 월 3장은 점수 계산에서 0점 처리합니다. 같은 월 4장은 3장만 0점이고 1장은 점수에 포함됩니다.</p>
+                <h3>바가지</h3>
+                <p>일반 바가지는 뻥 이력이 있고 손패가 같은 월 2장일 때 선언할 수 있습니다. 폭탄 바가지는 5장 손패가 3장+2장 구조일 때 선언합니다. 대상 월을 다른 사람이 버리면 발동합니다.</p>
+                <h3>기습 STOP</h3>
+                <p>내 턴 시작 시 손패가 2장이고 월 합이 5 이하이며, 필요한 뻥 인원 조건을 만족할 때 직접 선언할 수 있습니다.</p>
+                <h3>덱 소진</h3>
+                <p>3~4인은 첫 덱이 끝나면 바로 정산합니다. 5~6인은 버림패를 섞어 2단계로 한 번 더 진행한 뒤 정산합니다.</p>
+            </div>
+            <button class="primary-button full-button" data-close-modal="rulesModal" type="button">확인</button>
+        </section>
+    </div>
 
     <div id="message" class="toast" role="status" aria-live="polite"></div>
 

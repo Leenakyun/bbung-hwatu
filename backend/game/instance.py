@@ -24,6 +24,8 @@ class GameInstance:
 
     owner_id: str | None = None
     max_players: int | None = None
+    is_private: bool = False
+    room_password_hash: str | None = None
 
     created_at: datetime = field(
         default_factory=lambda: datetime.now(timezone.utc)

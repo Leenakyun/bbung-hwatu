@@ -9,6 +9,10 @@ from datetime import datetime, timedelta, timezone
 import time
 
 from auth import AuthError, AuthStore
+from werkzeug.security import (
+    check_password_hash,
+    generate_password_hash,
+)
 
 from flask import (
     Flask,
@@ -733,6 +737,7 @@ def serialize_game(game):
         "mode": game.mode.value,
         "owner_id": game.owner_id,
         "max_players": game.max_players,
+        "is_private": game.is_private,
         "status": state.status.value,
         "turn_phase": (
             state.turn_phase.value
@@ -1732,6 +1737,36 @@ def create_online_room():
             400,
         )
 
+    is_private = bool(
+        data.get(
+            "is_private",
+            False,
+        )
+    )
+
+    room_password = str(
+        data.get(
+            "room_password",
+            "",
+        )
+        or ""
+    ).strip()
+
+    if is_private and len(room_password) < 4:
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "ROOM_PASSWORD_TOO_SHORT",
+                    "message": (
+                        "비밀방 비밀번호는 "
+                        "4자 이상이어야 합니다."
+                    ),
+                }
+            ),
+            400,
+        )
+
     room_number = (
         len(
             manager.get_games_by_mode(
@@ -1776,6 +1811,14 @@ def create_online_room():
         mode=GameMode.ONLINE,
         owner_id=owner_id,
         max_players=max_players,
+        is_private=is_private,
+        room_password_hash=(
+            generate_password_hash(
+                room_password
+            )
+            if is_private
+            else None
+        ),
         state=state,
     )
 
@@ -1992,6 +2035,36 @@ def join_online_room(
 
                 return jsonify(
                     response_data
+                )
+
+        if game.is_private:
+            room_password = str(
+                data.get(
+                    "room_password",
+                    "",
+                )
+                or ""
+            )
+
+            if (
+                not game.room_password_hash
+                or not check_password_hash(
+                    game.room_password_hash,
+                    room_password,
+                )
+            ):
+                return (
+                    jsonify(
+                        {
+                            "ok": False,
+                            "error": "INVALID_ROOM_PASSWORD",
+                            "message": (
+                                "비밀방 비밀번호가 "
+                                "올바르지 않습니다."
+                            ),
+                        }
+                    ),
+                    403,
                 )
 
         if (

@@ -117,6 +117,135 @@ class OnlineRoomFlowTests(
             "HUMAN",
         )
 
+    def test_private_room_requires_valid_password(self):
+        room = self.client.post(
+            "/api/online/rooms",
+            json={
+                "nickname": "방장",
+                "max_players": 4,
+                "is_private": True,
+                "room_password": "1234",
+            },
+        )
+
+        self.assertEqual(
+            room.status_code,
+            200,
+        )
+
+        room_data = room.get_json()
+        game_id = room_data[
+            "game_id"
+        ]
+
+        self.assertTrue(
+            room_data[
+                "is_private"
+            ]
+        )
+        self.assertNotIn(
+            "room_password",
+            room_data,
+        )
+        self.assertNotIn(
+            "room_password_hash",
+            room_data,
+        )
+
+        rejected = self.client.post(
+            f"/api/online/rooms/{game_id}/join",
+            json={
+                "nickname": "친구",
+                "client_id": "FRIEND-WRONG",
+                "room_password": "9999",
+            },
+        )
+
+        self.assertEqual(
+            rejected.status_code,
+            403,
+        )
+        self.assertEqual(
+            rejected.get_json()[
+                "error"
+            ],
+            "INVALID_ROOM_PASSWORD",
+        )
+
+        accepted = self.client.post(
+            f"/api/online/rooms/{game_id}/join",
+            json={
+                "nickname": "친구",
+                "client_id": "FRIEND-RIGHT",
+                "room_password": "1234",
+            },
+        )
+
+        self.assertEqual(
+            accepted.status_code,
+            200,
+        )
+        self.assertEqual(
+            len(
+                accepted.get_json()[
+                    "players"
+                ]
+            ),
+            2,
+        )
+
+    def test_private_room_password_is_hashed(self):
+        response = self.client.post(
+            "/api/online/rooms",
+            json={
+                "nickname": "방장",
+                "max_players": 3,
+                "is_private": True,
+                "room_password": "family-secret",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        game = app_module.manager.get_game(
+            response.get_json()[
+                "game_id"
+            ]
+        )
+
+        self.assertIsNotNone(
+            game.room_password_hash
+        )
+        self.assertNotEqual(
+            game.room_password_hash,
+            "family-secret",
+        )
+
+    def test_private_room_password_must_be_at_least_four_characters(self):
+        response = self.client.post(
+            "/api/online/rooms",
+            json={
+                "nickname": "방장",
+                "max_players": 3,
+                "is_private": True,
+                "room_password": "123",
+            },
+        )
+
+        self.assertEqual(
+            response.status_code,
+            400,
+        )
+        self.assertEqual(
+            response.get_json()[
+                "error"
+            ],
+            "ROOM_PASSWORD_TOO_SHORT",
+        )
+
     def test_join_online_room(self):
         room = self.client.post(
             "/api/online/rooms",
