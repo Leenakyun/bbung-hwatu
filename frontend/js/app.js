@@ -1311,40 +1311,47 @@ let currentGameId = null;
         function renderGame(game) {
             setUiMode("game");
 
+            const humanPlayer =
+                (
+                    currentGameMode
+                    === "ONLINE"
+                    && currentPlayerId
+                )
+                ? game.players.find(
+                    player =>
+                        player.player_id
+                        === currentPlayerId
+                )
+                : game.players.find(
+                    player =>
+                        player.player_type
+                        === "HUMAN"
+                );
+
+            const currentTurnPlayer =
+                game.players.find(
+                    player =>
+                        player.player_id
+                        === game.current_turn_player_id
+                );
+
             gameStatusElement.innerHTML = `
-                <div class="status-line">
-                    게임:
-                    ${game.game_id}
+                <div class="status-line status-primary">
+                    ${game.round_number}R / 20
                 </div>
 
                 <div class="status-line">
-                    라운드:
-                    ${game.round_number}
+                    내 점수
+                    <b>${humanPlayer ? humanPlayer.total_score : 0}</b>
                 </div>
 
                 <div class="status-line">
-                    페이즈:
-                    ${game.play_phase || 1}
+                    현재 턴
+                    <b>${currentTurnPlayer ? currentTurnPlayer.nickname : "-"}</b>
                 </div>
 
-                <div class="status-line">
-                    상태:
-                    ${game.status}
-                </div>
-
-                <div class="status-line">
-                    단계:
-                    ${game.turn_phase}
-                </div>
-
-                <div class="status-line">
-                    현재 턴:
-                    ${game.current_turn_player_id}
-                </div>
-
-                <div class="status-line">
-                    남은 덱:
-                    ${game.deck_count}
+                <div class="status-line status-secondary">
+                    덱 ${game.deck_count}
                 </div>
             `;
 
@@ -1366,25 +1373,9 @@ let currentGameId = null;
 
             renderPlayers(
                 game.players,
-                game
+                game,
+                humanPlayer
             );
-
-            const humanPlayer =
-                (
-                    currentGameMode
-                    === "ONLINE"
-                    && currentPlayerId
-                )
-                ? game.players.find(
-                    player =>
-                        player.player_id
-                        === currentPlayerId
-                )
-                : game.players.find(
-                    player =>
-                        player.player_type
-                        === "HUMAN"
-                );
 
             renderMyHand(
                 humanPlayer,
@@ -1907,7 +1898,8 @@ let currentGameId = null;
 
         function renderPlayers(
             players,
-            game
+            game,
+            humanPlayer
         ) {
             playersElement.innerHTML = "";
 
@@ -1915,17 +1907,43 @@ let currentGameId = null;
                 game.status === "ROUND_END"
                 || game.status === "GAME_END";
 
-            for (const player of players) {
+            const opponents = players.filter(
+                player =>
+                    !humanPlayer
+                    || player.player_id
+                        !== humanPlayer.player_id
+            );
+
+            playersElement.dataset.opponents =
+                String(opponents.length);
+
+            for (
+                let index = 0;
+                index < opponents.length;
+                index += 1
+            ) {
+                const player = opponents[index];
                 const element =
                     document.createElement("div");
 
-                element.className = "player";
+                element.className =
+                    `player seat seat-${index + 1}`;
+
+                if (
+                    game.current_turn_player_id
+                    === player.player_id
+                ) {
+                    element.classList.add(
+                        "is-current-turn"
+                    );
+                }
 
                 let handHtml = "";
 
                 if (
                     revealHands
-                    && player.player_type !== "HUMAN"
+                    && player.hand
+                    && player.hand.length
                 ) {
                     const cardsHtml =
                         player.hand
@@ -1939,50 +1957,26 @@ let currentGameId = null;
                             .join("");
 
                     handHtml = `
-                        <div>
-                            최종 손패:
-                        </div>
                         <div class="opponent-hand">
-                            ${cardsHtml || "없음"}
+                            ${cardsHtml}
                         </div>
                     `;
                 }
 
                 element.innerHTML = `
-                    <strong>
-                        ${player.nickname}
-                    </strong>
-
-                    <div>
-                        ID:
-                        ${player.player_id}
+                    <div class="player-head">
+                        <strong>${player.nickname}</strong>
+                        <span>${player.hand_count}장</span>
                     </div>
-
-                    <div>
-                        타입:
-                        ${player.player_type}
+                    <div class="player-score-row">
+                        <span>합계 ${player.total_score}</span>
+                        <span>이번 판 ${player.round_score}</span>
                     </div>
-
-                    <div>
-                        손패:
-                        ${player.hand_count}장
-                    </div>
-
-                    <div>
-                        라운드 점수:
-                        ${player.round_score}
-                    </div>
-
-                    <div>
-                        누적 점수:
-                        ${player.total_score}
-                    </div>
-
-                    <div>
-                        뻥:
-                        ${player.bbung_count}회
-                    </div>
-
+                    ${
+                        player.bbung_count
+                            ? `<div class="bbung-count">뻥 ${player.bbung_count}</div>`
+                            : ""
+                    }
                     ${handHtml}
                 `;
 
@@ -1991,6 +1985,7 @@ let currentGameId = null;
                 );
             }
         }
+
 
 
         function renderMyHand(
