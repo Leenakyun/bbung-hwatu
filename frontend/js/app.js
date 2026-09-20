@@ -2217,33 +2217,160 @@ let currentGameId = null;
         }
 
 
+        function getMonthCounts(cards) {
+            const counts = new Map();
+
+            for (const card of (cards || [])) {
+                counts.set(
+                    card.month,
+                    (counts.get(card.month) || 0) + 1
+                );
+            }
+
+            return counts;
+        }
+
+
+        function hasAnyMyBagajiDeclaration(
+            game,
+            humanPlayer
+        ) {
+            if (!humanPlayer) {
+                return false;
+            }
+
+            const general = (
+                game.active_bagaji_declarations
+                || []
+            ).some(
+                item => item.player_id
+                    === humanPlayer.player_id
+            );
+
+            const bomb = (
+                game.active_bomb_bagaji_declarations
+                || []
+            ).some(
+                item => item.player_id
+                    === humanPlayer.player_id
+            );
+
+            return general || bomb;
+        }
+
+
+        function canShowSurpriseStop(
+            game,
+            humanPlayer
+        ) {
+            if (
+                !humanPlayer
+                || game.status !== "PLAYING"
+                || game.turn_phase !== "DRAW"
+                || game.current_turn_player_id
+                    !== humanPlayer.player_id
+                || humanPlayer.hand.length !== 2
+                || humanPlayer.bbung_count <= 0
+            ) {
+                return false;
+            }
+
+            const handSum = humanPlayer.hand.reduce(
+                (sum, card) => sum + card.month,
+                0
+            );
+
+            if (handSum > 5) {
+                return false;
+            }
+
+            const bbungPlayerCount = (
+                game.players || []
+            ).filter(
+                player => player.bbung_count > 0
+            ).length;
+
+            const requiredCount =
+                (game.players || []).length === 3
+                    ? 2
+                    : 3;
+
+            return bbungPlayerCount >= requiredCount;
+        }
+
+
+        function getGeneralBagajiTargetMonth(
+            humanPlayer
+        ) {
+            if (
+                !humanPlayer
+                || humanPlayer.bbung_count <= 0
+                || humanPlayer.hand.length !== 2
+            ) {
+                return null;
+            }
+
+            const [first, second] = humanPlayer.hand;
+
+            if (
+                !first
+                || !second
+                || first.month !== second.month
+            ) {
+                return null;
+            }
+
+            return first.month;
+        }
+
+
+        function getBombBagajiTargetMonth(
+            humanPlayer
+        ) {
+            if (
+                !humanPlayer
+                || humanPlayer.hand.length !== 5
+            ) {
+                return null;
+            }
+
+            const counts = getMonthCounts(
+                humanPlayer.hand
+            );
+
+            const values = Array.from(
+                counts.values()
+            ).sort((a, b) => a - b);
+
+            if (
+                values.length !== 2
+                || values[0] !== 2
+                || values[1] !== 3
+            ) {
+                return null;
+            }
+
+            for (const [month, count] of counts) {
+                if (count === 2) {
+                    return month;
+                }
+            }
+
+            return null;
+        }
+
+
         function renderSurpriseStop(
             game,
             humanPlayer
         ) {
             surpriseStopPanel.style.display =
-                "none";
-
-            if (!humanPlayer) {
-                return;
-            }
-
-            const canAttempt =
-                game.status
-                    === "PLAYING"
-                && game.turn_phase
-                    === "DRAW"
-                && game
-                    .current_turn_player_id
-                    === humanPlayer
-                        .player_id;
-
-            if (!canAttempt) {
-                return;
-            }
-
-            surpriseStopPanel.style.display =
-                "block";
+                canShowSurpriseStop(
+                    game,
+                    humanPlayer
+                )
+                    ? "block"
+                    : "none";
         }
 
 
@@ -2270,12 +2397,8 @@ let currentGameId = null;
                 return;
             }
 
-            bombBagajiPanel.style.display =
-                "block";
-
             const activeDeclarations =
-                game
-                    .active_bomb_bagaji_declarations
+                game.active_bomb_bagaji_declarations
                 || [];
 
             const myDeclaration =
@@ -2286,8 +2409,11 @@ let currentGameId = null;
                 );
 
             if (myDeclaration) {
+                bombBagajiPanel.style.display =
+                    "block";
+
                 bombBagajiStatus.textContent =
-                    "폭탄 바가지 선언 중";
+                    `폭탄 바가지 선언 중 · ${myDeclaration.month}월`;
 
                 bombBagajiCancelButton.style.display =
                     "inline-block";
@@ -2295,8 +2421,29 @@ let currentGameId = null;
                 return;
             }
 
+            if (
+                hasAnyMyBagajiDeclaration(
+                    game,
+                    humanPlayer
+                )
+            ) {
+                return;
+            }
+
+            const targetMonth =
+                getBombBagajiTargetMonth(
+                    humanPlayer
+                );
+
+            if (targetMonth === null) {
+                return;
+            }
+
+            bombBagajiPanel.style.display =
+                "block";
+
             bombBagajiStatus.textContent =
-                "선언 여부는 직접 판단하세요.";
+                `${targetMonth}월 폭탄 바가지 가능`;
 
             bombBagajiCallButton.style.display =
                 "inline-block";
@@ -2326,12 +2473,8 @@ let currentGameId = null;
                 return;
             }
 
-            generalBagajiPanel.style.display =
-                "block";
-
             const activeDeclarations =
-                game
-                    .active_bagaji_declarations
+                game.active_bagaji_declarations
                 || [];
 
             const myDeclaration =
@@ -2342,8 +2485,11 @@ let currentGameId = null;
                 );
 
             if (myDeclaration) {
+                generalBagajiPanel.style.display =
+                    "block";
+
                 generalBagajiStatus.textContent =
-                    "일반 바가지 선언 중";
+                    `일반 바가지 선언 중 · ${myDeclaration.month}월`;
 
                 generalBagajiCancelButton.style.display =
                     "inline-block";
@@ -2351,8 +2497,29 @@ let currentGameId = null;
                 return;
             }
 
+            if (
+                hasAnyMyBagajiDeclaration(
+                    game,
+                    humanPlayer
+                )
+            ) {
+                return;
+            }
+
+            const targetMonth =
+                getGeneralBagajiTargetMonth(
+                    humanPlayer
+                );
+
+            if (targetMonth === null) {
+                return;
+            }
+
+            generalBagajiPanel.style.display =
+                "block";
+
             generalBagajiStatus.textContent =
-                "선언 여부와 월은 직접 판단하세요.";
+                `${targetMonth}월 일반 바가지 가능`;
 
             generalBagajiCallButton.style.display =
                 "inline-block";
@@ -2790,8 +2957,6 @@ let currentGameId = null;
                     return;
                 }
 
-                playEffect("bbung");
-
                 if (
                     data.turn_phase
                     === "REACTION"
@@ -3178,6 +3343,8 @@ let currentGameId = null;
 
                     return;
                 }
+
+                playEffect("bbung");
 
                 if (
                     data.turn_phase

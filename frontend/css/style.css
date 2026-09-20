@@ -405,6 +405,22 @@ button.card:disabled { opacity: .76; filter: saturate(.8); }
 .rule-line { display: grid; grid-template-columns: 48px 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.06); color: #9f9187; font-size: 11px; }
 .rule-line b { color: var(--gold-bright); }
 
+.quick-rule-actions {
+    display: grid;
+    gap: 8px;
+}
+
+.game-sidebar .quick-rule-actions .reaction-card {
+    width: 100%;
+    background: rgba(31, 21, 17, .96);
+    border: 1px solid rgba(255, 221, 173, .12);
+}
+
+.game-sidebar .quick-rule-actions .reaction-card[style*="display:none"],
+.game-sidebar .quick-rule-actions .reaction-card[style*="display: none"] {
+    display: none !important;
+}
+
 .toast {
     position: fixed;
     left: 50%;
@@ -994,7 +1010,16 @@ button.card:disabled { opacity: .76; filter: saturate(.8); }
     }
 
     .rules-card {
-        display: none !important;
+        display: block !important;
+        max-height: none !important;
+    }
+
+    .quick-rule-actions {
+        pointer-events: auto;
+    }
+
+    .quick-rule-actions .reaction-card {
+        padding: 10px;
     }
 
     .toast {
