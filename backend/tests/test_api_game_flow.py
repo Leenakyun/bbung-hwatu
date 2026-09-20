@@ -150,6 +150,15 @@ class ApiGameFlowTests(
             )
         )
 
+        self.assertEqual(
+            data["status"],
+            "DEALER_SELECTION",
+        )
+        self.assertIn(
+            data["dealer_selection_mode"],
+            {"DAY", "NIGHT"},
+        )
+
         return data["game_id"]
 
     def post_and_require_success(
@@ -207,6 +216,21 @@ class ApiGameFlowTests(
                 >= target_round
             ):
                 return
+
+            if (
+                state["status"]
+                == "DEALER_SELECTION"
+            ):
+                result = (
+                    self.post_and_require_success(
+                        f"/api/games/"
+                        f"{game_id}/dealer-selection/draw"
+                    )
+                )
+                self.assert_full_game_payload(
+                    result
+                )
+                continue
 
             if (
                 state["status"]

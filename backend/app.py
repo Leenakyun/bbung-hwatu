@@ -1645,28 +1645,33 @@ def create_game():
         state=state,
     )
 
-    dealer_id = players[0].player_id
-
-    state.dealer_id = dealer_id
-    state.current_turn_player_id = (
-        dealer_id
+    # AI 대전도 온라인과 동일하게 밤일낮짱부터 시작한다.
+    # 서버 현재 시각을 한국 표준시(KST)로 변환하여
+    # 06:00~17:59 = DAY, 18:00~05:59 = NIGHT 로 자동 결정한다.
+    kst = timezone(timedelta(hours=9))
+    kst_now = datetime.now(timezone.utc).astimezone(kst)
+    dealer_mode = (
+        "DAY"
+        if 6 <= kst_now.hour < 18
+        else "NIGHT"
     )
 
-    state.deck = Deck()
-    state.deck.shuffle()
-
-    deal_initial_cards(
-        deck=state.deck,
-        players=state.players,
-        dealer_id=dealer_id,
-    )
-
-    state.status = GameStatus.PLAYING
+    state.dealer_selection_mode = dealer_mode
+    state.dealer_selection_history = []
+    state.dealer_selection_candidate_ids = [
+        player.player_id
+        for player in state.players
+    ]
+    state.dealer_selection_current_draws = {}
+    state.dealer_selection_round_number = 1
+    state.dealer_selection_deck = Deck()
+    state.dealer_selection_deck.shuffle()
+    state.dealer_id = None
+    state.current_turn_player_id = None
+    state.turn_phase = None
+    state.deck = None
+    state.status = GameStatus.DEALER_SELECTION
     state.round_winner_decided_by_tie_break = False
-
-    # 선은 6장을 받고
-    # 드로우 없이 바로 1장을 버린다.
-    state.turn_phase = TurnPhase.DISCARD
 
     manager.add_game(game)
 
@@ -1674,6 +1679,183 @@ def create_game():
         serialize_game(game)
     )
 
+
+
+@app.post(
+    "/api/games/<game_id>/dealer-selection/draw"
+)
+def draw_solo_dealer_selection_card(
+    game_id: str,
+):
+    try:
+        game = manager.require_mode(
+            game_id,
+            GameMode.SOLO_AI,
+        )
+    except ValueError as error:
+        if str(error) == "GAME_NOT_FOUND":
+            return jsonify({
+                "ok": False,
+                "error": "GAME_NOT_FOUND",
+                "message": "AI 대전 게임을 찾을 수 없습니다.",
+            }), 404
+        return jsonify({
+            "ok": False,
+            "error": "GAME_MODE_MISMATCH",
+            "message": "AI 대전 게임이 아닙니다.",
+        }), 400
+
+    state = game.state
+    if state.status != GameStatus.DEALER_SELECTION:
+        return jsonify({
+            "ok": False,
+            "error": "DEALER_SELECTION_NOT_ACTIVE",
+            "message": "현재 밤일낮짱 진행 중이 아닙니다.",
+        }), 400
+
+    human_player = next(
+        (
+            player
+            for player in state.players
+            if player.player_type == PlayerType.HUMAN
+        ),
+        None,
+    )
+    if human_player is None:
+        return jsonify({
+            "ok": False,
+            "error": "HUMAN_PLAYER_NOT_FOUND",
+            "message": "인간 플레이어를 찾을 수 없습니다.",
+        }), 400
+
+    human_id = human_player.player_id
+    candidates = list(
+        state.dealer_selection_candidate_ids
+    )
+
+    if human_id not in candidates:
+        return jsonify({
+            "ok": False,
+            "error": "NOT_DEALER_SELECTION_CANDIDATE",
+            "message": "이번 추첨 대상이 아닙니다.",
+        }), 400
+
+    if human_id in state.dealer_selection_current_draws:
+        return jsonify({
+            "ok": False,
+            "error": "ALREADY_DREW_DEALER_CARD",
+            "message": "이번 추첨에서는 이미 카드를 뽑았습니다.",
+        }), 400
+
+    if state.dealer_selection_deck is None:
+        state.dealer_selection_deck = Deck()
+        state.dealer_selection_deck.shuffle()
+
+    human_card = state.dealer_selection_deck.draw()
+    state.dealer_selection_current_draws[
+        human_id
+    ] = human_card
+
+    # 사람이 한 장 뽑으면 같은 추첨 라운드의 AI들은
+    # 서버가 즉시 자동으로 한 장씩 뽑는다.
+    for candidate_id in candidates:
+        if candidate_id == human_id:
+            continue
+        if candidate_id in state.dealer_selection_current_draws:
+            continue
+        state.dealer_selection_current_draws[
+            candidate_id
+        ] = state.dealer_selection_deck.draw()
+
+    while True:
+        candidates = list(
+            state.dealer_selection_candidate_ids
+        )
+        draws = dict(
+            state.dealer_selection_current_draws
+        )
+
+        if not all(
+            candidate_id in draws
+            for candidate_id in candidates
+        ):
+            break
+
+        is_night = (
+            state.dealer_selection_mode == "NIGHT"
+        )
+        target_month = (
+            min(
+                draws[candidate_id].month
+                for candidate_id in candidates
+            )
+            if is_night
+            else max(
+                draws[candidate_id].month
+                for candidate_id in candidates
+            )
+        )
+        winner_ids = [
+            candidate_id
+            for candidate_id in candidates
+            if draws[candidate_id].month
+            == target_month
+        ]
+
+        state.dealer_selection_history.append({
+            "round": state.dealer_selection_round_number,
+            "draws": {
+                candidate_id: draws[candidate_id]
+                for candidate_id in candidates
+            },
+            "winner_ids": list(winner_ids),
+        })
+
+        if len(winner_ids) == 1:
+            state.dealer_id = winner_ids[0]
+            state.dealer_selection_candidate_ids = []
+            state.dealer_selection_current_draws = {}
+            state.dealer_selection_deck = None
+            break
+
+        state.dealer_selection_candidate_ids = list(
+            winner_ids
+        )
+        state.dealer_selection_current_draws = {}
+        state.dealer_selection_round_number += 1
+        state.dealer_selection_deck = Deck()
+        state.dealer_selection_deck.shuffle()
+
+        # 인간이 동점 후보에 남아 있으면 다음 재추첨은
+        # 사람이 다시 버튼을 눌렀을 때 진행한다.
+        if human_id in winner_ids:
+            break
+
+        # AI끼리만 동점이면 재추첨을 자동으로 끝까지 진행한다.
+        for candidate_id in winner_ids:
+            state.dealer_selection_current_draws[
+                candidate_id
+            ] = state.dealer_selection_deck.draw()
+
+    if state.dealer_id is not None:
+        dealer_id = state.dealer_id
+        state.deck = Deck()
+        state.deck.shuffle()
+        deal_initial_cards(
+            deck=state.deck,
+            players=state.players,
+            dealer_id=dealer_id,
+        )
+        state.current_turn_player_id = dealer_id
+        state.status = GameStatus.PLAYING
+        # 선은 6장을 받고 드로우 없이 바로 1장을 버린다.
+        state.turn_phase = TurnPhase.DISCARD
+
+    response_data = serialize_game(game)
+    response_data[
+        "drawn_dealer_card"
+    ] = serialize_card(human_card)
+    return jsonify(response_data)
 
 
 @app.post("/api/online/rooms")

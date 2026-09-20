@@ -1371,16 +1371,21 @@ let currentGameId = null;
 
         async function drawDealerSelectionCard() {
             if (
-                currentGameMode !== "ONLINE"
-                || !currentGameId
+                !currentGameId
                 || !currentPlayerId
+                || !["ONLINE", "SOLO_AI"].includes(currentGameMode)
             ) {
                 return;
             }
 
             try {
+                const dealerDrawUrl =
+                    currentGameMode === "ONLINE"
+                        ? `/api/online/rooms/${currentGameId}/dealer-selection/draw`
+                        : `/api/games/${currentGameId}/dealer-selection/draw`;
+
                 const response = await apiFetch(
-                    `/api/online/rooms/${currentGameId}/dealer-selection/draw`,
+                    dealerDrawUrl,
                     { method: "POST" }
                 );
                 const data = await response.json();
@@ -1401,6 +1406,15 @@ let currentGameId = null;
                 }
 
                 renderGame(data);
+
+                if (
+                    currentGameMode === "SOLO_AI"
+                    && data.status === "PLAYING"
+                    && data.current_turn_player_id
+                    && data.current_turn_player_id !== currentPlayerId
+                ) {
+                    await continueGame();
+                }
             } catch (error) {
                 showMessage(
                     `선 정하기 카드 뽑기 오류: ${error}`
@@ -1866,7 +1880,11 @@ let currentGameId = null;
                     : "선 정하기 카드 뽑기";
 
             confirmOnlineStartButton.style.display =
-                (currentOwnerId && game.dealer_id)
+                (
+                    currentGameMode === "ONLINE"
+                    && currentOwnerId
+                    && game.dealer_id
+                )
                     ? "inline-block"
                     : "none";
         }

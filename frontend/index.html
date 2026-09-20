@@ -141,11 +141,9 @@
                     </div>
 
                     <div class="reaction-dock">
-                        <section class="reaction-card" id="stopPanel" style="display:none;">
-                            <span class="reaction-tag">STOP</span>
-                            <div class="reaction-title">STOP 여부는 직접 계산해서 판단하세요.</div>
-                            <button id="stopCallButton" class="danger-button" type="button">STOP 외치기</button>
-                            <div id="stopButtons" class="reaction-options" style="display:none;"></div>
+                        <section class="reaction-card compact-action-card" id="stopPanel" style="display:none;">
+                            <button id="stopCallButton" class="danger-button compact-game-action" type="button">STOP</button>
+                            <div id="stopButtons" class="reaction-options compact-stop-options" style="display:none;"></div>
                         </section>
 
                         <section class="reaction-card bbung-card" id="bbungPanel" style="display:none;">
@@ -206,24 +204,20 @@
                     <div class="quick-rule-actions" id="quickRuleActions">
                         
 
-                        <section class="reaction-card" id="surpriseStopPanel" style="display:none;">
-                            <span class="reaction-tag">SURPRISE</span>
-                            <div class="reaction-title">기습 STOP 여부는 직접 계산해서 판단하세요.</div>
-                            <button id="surpriseStopButton" class="danger-button" type="button">기습 STOP 외치기</button>
+                        <section class="reaction-card compact-action-card" id="surpriseStopPanel" style="display:none;">
+                            <button id="surpriseStopButton" class="danger-button compact-game-action" type="button">기습 STOP</button>
                         </section>
 
-                        <section class="reaction-card" id="bombBagajiPanel" style="display:none;">
-                            <span class="reaction-tag">BOMB</span>
-                            <div id="bombBagajiStatus" class="reaction-title"></div>
-                            <button id="bombBagajiCallButton" class="accent-button" type="button">폭탄 바가지</button>
-                            <button id="bombBagajiCancelButton" class="ghost-button" type="button" style="display:none;">철회</button>
+                        <section class="reaction-card compact-action-card" id="bombBagajiPanel" style="display:none;">
+                            <div id="bombBagajiStatus" class="action-status-sr" aria-live="polite"></div>
+                            <button id="bombBagajiCallButton" class="accent-button compact-game-action" type="button">폭탄 바가지</button>
+                            <button id="bombBagajiCancelButton" class="ghost-button compact-game-action" type="button" style="display:none;">폭탄 바가지 철회</button>
                         </section>
 
-                        <section class="reaction-card" id="generalBagajiPanel" style="display:none;">
-                            <span class="reaction-tag">BAGAJI</span>
-                            <div id="generalBagajiStatus" class="reaction-title"></div>
-                            <button id="generalBagajiCallButton" class="accent-button" type="button">일반 바가지</button>
-                            <button id="generalBagajiCancelButton" class="ghost-button" type="button" style="display:none;">철회</button>
+                        <section class="reaction-card compact-action-card" id="generalBagajiPanel" style="display:none;">
+                            <div id="generalBagajiStatus" class="action-status-sr" aria-live="polite"></div>
+                            <button id="generalBagajiCallButton" class="accent-button compact-game-action" type="button">바가지</button>
+                            <button id="generalBagajiCancelButton" class="ghost-button compact-game-action" type="button" style="display:none;">바가지 철회</button>
                         </section>
                     </div>
                 </aside>
