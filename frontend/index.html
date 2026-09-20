@@ -121,6 +121,7 @@
                 </div>
                 <div class="toolbar-actions">
                     <button id="refreshButton" class="icon-text-button" type="button">↻ 상태 갱신</button>
+                    <span id="declarationStatusBadge" class="declaration-status-badge" style="display:none;" aria-live="polite"></span>
                 </div>
             </div>
 
@@ -132,7 +133,7 @@
                     <div class="table-center">
                         <button id="drawDeck" class="deck-visual deck-button" type="button" disabled aria-label="드로우 덱에서 카드 뽑기">
                             <img src="/assets/cards/1_4.png" alt="드로우 덱">
-                            <span>DRAW DECK</span>
+                            <span>카드 뽑기</span>
                         </button>
                         <div class="discard-zone">
                             <span class="zone-label">버림패</span>
@@ -211,13 +212,11 @@
                         <section class="reaction-card compact-action-card" id="bombBagajiPanel" style="display:none;">
                             <div id="bombBagajiStatus" class="action-status-sr" aria-live="polite"></div>
                             <button id="bombBagajiCallButton" class="accent-button compact-game-action" type="button">폭탄 바가지</button>
-                            <button id="bombBagajiCancelButton" class="ghost-button compact-game-action" type="button" style="display:none;">폭탄 바가지 철회</button>
                         </section>
 
                         <section class="reaction-card compact-action-card" id="generalBagajiPanel" style="display:none;">
                             <div id="generalBagajiStatus" class="action-status-sr" aria-live="polite"></div>
                             <button id="generalBagajiCallButton" class="accent-button compact-game-action" type="button">바가지</button>
-                            <button id="generalBagajiCancelButton" class="ghost-button compact-game-action" type="button" style="display:none;">바가지 철회</button>
                         </section>
                     </div>
                 </aside>

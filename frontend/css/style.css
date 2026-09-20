@@ -1391,3 +1391,61 @@ body.modal-open {
     }
 }
 \n\n/* Gameplay v7: compact action buttons so mobile hands stay visible */\n.compact-action-card {\n    padding: 0 !important;\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n}\n.compact-game-action {\n    min-height: 42px;\n    width: 100%;\n    padding: 9px 12px;\n    border-radius: 12px;\n    font-weight: 900;\n    white-space: nowrap;\n}\n.action-status-sr {\n    position: absolute !important;\n    width: 1px !important;\n    height: 1px !important;\n    padding: 0 !important;\n    margin: -1px !important;\n    overflow: hidden !important;\n    clip: rect(0, 0, 0, 0) !important;\n    white-space: nowrap !important;\n    border: 0 !important;\n}\n.compact-stop-options {\n    padding: 7px;\n    border-radius: 12px;\n    background: rgba(27,18,15,.96);\n}\n.reaction-dock:has(#stopPanel[style*="display: block"]) {\n    width: min(150px, 34vw);\n}\n.game-sidebar .quick-rule-actions {\n    grid-template-columns: repeat(3, minmax(0, 1fr));\n    gap: 6px;\n}\n.game-sidebar .quick-rule-actions .compact-game-action {\n    min-height: 38px;\n    padding: 7px 6px;\n    font-size: 11px;\n}\n@media (max-width: 760px) {\n    .reaction-dock {\n        width: 112px;\n        right: 8px;\n        top: 112px;\n    }\n    .reaction-dock .compact-game-action {\n        min-height: 38px;\n        padding: 7px 8px;\n        font-size: 11px;\n    }\n    .game-sidebar .quick-rule-actions {\n        grid-template-columns: repeat(3, minmax(0, 1fr));\n    }\n}\n
+
+/* Gameplay v9: declaration badge + draw deck spacing */
+.declaration-status-badge {
+    align-items: center;
+    min-height: 34px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(244,195,103,.38);
+    background: rgba(63,42,24,.78);
+    color: #f4c367;
+    font-size: 11px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.deck-visual span {
+    letter-spacing: 0;
+    font-size: 10px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.deck-button.is-drawable::after {
+    content: none;
+}
+
+@media (max-width: 720px) {
+    .deck-visual span {
+        bottom: -15px;
+        font-size: 9px;
+        width: 74px;
+    }
+    .toolbar-actions {
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .declaration-status-badge {
+        min-height: 30px;
+        padding: 5px 8px;
+        font-size: 10px;
+    }
+}
+
+.deck-button {
+    transform: translate(-14px, 12px);
+}
+.deck-button.is-drawable {
+    transform: translate(-14px, 10px);
+}
+@media (max-width: 720px) {
+    .deck-button {
+        transform: translate(-10px, 14px);
+    }
+    .deck-button.is-drawable {
+        transform: translate(-10px, 12px);
+    }
+}

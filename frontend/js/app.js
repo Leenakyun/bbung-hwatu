@@ -291,10 +291,6 @@ let currentGameId = null;
                 "bombBagajiCallButton"
             );
 
-        const bombBagajiCancelButton =
-            document.getElementById(
-                "bombBagajiCancelButton"
-            );
 
         const generalBagajiPanel =
             document.getElementById(
@@ -309,10 +305,6 @@ let currentGameId = null;
         const generalBagajiCallButton =
             document.getElementById(
                 "generalBagajiCallButton"
-            );
-        const generalBagajiCancelButton =
-            document.getElementById(
-                "generalBagajiCancelButton"
             );
 
         const bbungPanel =
@@ -346,12 +338,14 @@ let currentGameId = null;
         const backToLobbyButton = document.getElementById("backToLobbyButton");
         const musicToggle = document.getElementById("musicToggle");
         const soundToggle = document.getElementById("soundToggle");
+        const declarationStatusBadge = document.getElementById("declarationStatusBadge");
         const lobbyBgm = document.getElementById("lobbyBgm");
         const gameBgm = document.getElementById("gameBgm");
 
         let musicEnabled = false;
         let soundEnabled = true;
         let toastTimer = null;
+        let lastResultSoundKey = null;
 
         const soundEffects = {
             draw: new Audio("/assets/sfx/draw.wav"),
@@ -429,6 +423,34 @@ let currentGameId = null;
             } catch (_error) {
                 // 오디오 재생 실패는 게임 진행에 영향 없음.
             }
+        }
+
+
+        function playElderlyAigo() {
+            if (!soundEnabled || !("speechSynthesis" in window)) {
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance("아이고...");
+            utterance.lang = "ko-KR";
+            utterance.rate = 0.72;
+            utterance.pitch = 0.78;
+            utterance.volume = 1;
+
+            const voices = window.speechSynthesis.getVoices();
+            const koreanVoices = voices.filter(
+                voice => (voice.lang || "").toLowerCase().startsWith("ko")
+            );
+            const preferred = koreanVoices.find(voice =>
+                /female|woman|yuna|sora|sunhi|유나|소라|선희/i.test(voice.name || "")
+            ) || koreanVoices[0];
+
+            if (preferred) {
+                utterance.voice = preferred;
+            }
+
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
         }
 
 
@@ -1676,6 +1698,8 @@ let currentGameId = null;
                 </div>
             `;
 
+            renderDeclarationStatusBadge(game, humanPlayer);
+
             renderDealerSelection(
                 game
             );
@@ -2109,6 +2133,37 @@ let currentGameId = null;
         }
 
 
+        function renderDeclarationStatusBadge(game, humanPlayer) {
+            if (!declarationStatusBadge) {
+                return;
+            }
+
+            declarationStatusBadge.style.display = "none";
+            declarationStatusBadge.textContent = "";
+
+            if (!game || !humanPlayer) {
+                return;
+            }
+
+            const bomb = (game.active_bomb_bagaji_declarations || []).find(
+                item => item.player_id === humanPlayer.player_id
+            );
+            const general = (game.active_bagaji_declarations || []).find(
+                item => item.player_id === humanPlayer.player_id
+            );
+
+            if (bomb) {
+                declarationStatusBadge.textContent = `폭탄 바가지 선언 중 · ${bomb.month}월`;
+                declarationStatusBadge.style.display = "inline-flex";
+                return;
+            }
+
+            if (general) {
+                declarationStatusBadge.textContent = `바가지 선언 중 · ${general.month}월`;
+                declarationStatusBadge.style.display = "inline-flex";
+            }
+        }
+
         function renderRoundResult(
             game
         ) {
@@ -2128,7 +2183,22 @@ let currentGameId = null;
             roundResultPanel.style.display =
                 "block";
 
-            playEffect("win");
+            const myPlayerId = currentPlayerId || (
+                game.players.find(player => player.player_type === "HUMAN")?.player_id
+            );
+            const winnerId = game.status === "GAME_END"
+                ? game.game_winner_id
+                : game.round_winner_id;
+            const resultSoundKey = `${game.status}:${game.round_number}:${winnerId || "none"}:${myPlayerId || "none"}`;
+
+            if (lastResultSoundKey !== resultSoundKey) {
+                lastResultSoundKey = resultSoundKey;
+                if (myPlayerId && winnerId === myPlayerId) {
+                    playEffect("win");
+                } else if (myPlayerId && winnerId) {
+                    playElderlyAigo();
+                }
+            }
 
             if (game.status === "GAME_END") {
                 const gameWinner =
@@ -2686,9 +2756,6 @@ let currentGameId = null;
             bombBagajiCallButton.style.display =
                 "none";
 
-            bombBagajiCancelButton.style.display =
-                "none";
-
             bombBagajiStatus.textContent =
                 "";
 
@@ -2711,15 +2778,6 @@ let currentGameId = null;
                 );
 
             if (myDeclaration) {
-                bombBagajiPanel.style.display =
-                    "block";
-
-                bombBagajiStatus.textContent =
-                    `폭탄 바가지 선언 중 · ${myDeclaration.month}월`;
-
-                bombBagajiCancelButton.style.display =
-                    "inline-block";
-
                 return;
             }
 
@@ -2762,9 +2820,6 @@ let currentGameId = null;
             generalBagajiCallButton.style.display =
                 "none";
 
-            generalBagajiCancelButton.style.display =
-                "none";
-
             generalBagajiStatus.textContent =
                 "";
 
@@ -2787,15 +2842,6 @@ let currentGameId = null;
                 );
 
             if (myDeclaration) {
-                generalBagajiPanel.style.display =
-                    "block";
-
-                generalBagajiStatus.textContent =
-                    `일반 바가지 선언 중 · ${myDeclaration.month}월`;
-
-                generalBagajiCancelButton.style.display =
-                    "inline-block";
-
                 return;
             }
 
@@ -3992,11 +4038,6 @@ let currentGameId = null;
                 declareBombBagaji
             );
 
-        bombBagajiCancelButton
-            .addEventListener(
-                "click",
-                cancelBombBagaji
-            );
 
         generalBagajiCallButton
             .addEventListener(
@@ -4004,11 +4045,6 @@ let currentGameId = null;
                 declareGeneralBagaji
             );
 
-        generalBagajiCancelButton
-            .addEventListener(
-                "click",
-                cancelGeneralBagaji
-            );
 
         surpriseStopButton
             .addEventListener(
