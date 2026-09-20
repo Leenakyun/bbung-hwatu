@@ -290,11 +290,116 @@ let currentGameId = null;
                 "bbungPassButton"
             );
 
+        const lobbyView = document.getElementById("lobbyView");
+        const gameView = document.getElementById("gameView");
+        const homeButton = document.getElementById("homeButton");
+        const backToLobbyButton = document.getElementById("backToLobbyButton");
+        const musicToggle = document.getElementById("musicToggle");
+        const soundToggle = document.getElementById("soundToggle");
+        const lobbyBgm = document.getElementById("lobbyBgm");
+        const gameBgm = document.getElementById("gameBgm");
+
+        let musicEnabled = false;
+        let soundEnabled = true;
+        let toastTimer = null;
+
+        const soundEffects = {
+            draw: new Audio("/assets/sfx/draw.wav"),
+            discard: new Audio("/assets/sfx/discard.wav"),
+            bbung: new Audio("/assets/sfx/bbung.wav"),
+            bagaji: new Audio("/assets/sfx/bagaji.wav"),
+            bomb: new Audio("/assets/sfx/bomb.wav"),
+            win: new Audio("/assets/sfx/win.wav"),
+        };
+
 
         const nativeFetch =
             window.fetch.bind(
                 window
             );
+
+
+        function cardImagePath(card) {
+            if (!card) {
+                return "";
+            }
+
+            const parts =
+                (card.card_id || "")
+                    .split("-");
+
+            if (parts.length === 2) {
+                const month = Number(parts[0]);
+                const copy = Number(parts[1]);
+
+                if (month && copy) {
+                    return `/assets/cards/${month}_${copy}.png`;
+                }
+            }
+
+            if (card.month && card.copy_index) {
+                return `/assets/cards/${card.month}_${card.copy_index}.png`;
+            }
+
+            return "";
+        }
+
+
+        function cardMarkup(card) {
+            const imagePath = cardImagePath(card);
+
+            if (imagePath) {
+                return `
+                    <img src="${imagePath}" alt="${card.month}월 화투패" loading="eager">
+                    <span class="card-month">${card.month}월</span>
+                    <span class="card-id">${card.card_id || ""}</span>
+                `;
+            }
+
+            return `
+                <span class="card-month">${card.month}월</span>
+                <span class="card-id">${card.card_id || ""}</span>
+            `;
+        }
+
+
+        function playEffect(name) {
+            if (!soundEnabled) {
+                return;
+            }
+
+            const audio = soundEffects[name];
+            if (!audio) {
+                return;
+            }
+
+            try {
+                audio.currentTime = 0;
+                audio.play().catch(() => {});
+            } catch (_error) {
+                // 오디오 재생 실패는 게임 진행에 영향 없음.
+            }
+        }
+
+
+        function setUiMode(mode) {
+            const isGame = mode === "game";
+
+            lobbyView.hidden = isGame;
+            gameView.hidden = !isGame;
+
+            document.body.classList.toggle("game-mode", isGame);
+            document.body.classList.toggle("lobby-mode", !isGame);
+
+            if (musicEnabled) {
+                const active = isGame ? gameBgm : lobbyBgm;
+                const inactive = isGame ? lobbyBgm : gameBgm;
+
+                inactive.pause();
+                active.volume = 0.22;
+                active.play().catch(() => {});
+            }
+        }
 
 
         function buildHeaders(
@@ -723,8 +828,17 @@ let currentGameId = null;
 
 
         function showMessage(message) {
-            messageElement.textContent =
-                message;
+            messageElement.textContent = message;
+            messageElement.classList.add("is-visible");
+
+            if (toastTimer !== null) {
+                clearTimeout(toastTimer);
+            }
+
+            toastTimer = setTimeout(
+                () => messageElement.classList.remove("is-visible"),
+                3200
+            );
         }
 
 
@@ -1195,6 +1309,8 @@ let currentGameId = null;
 
 
         function renderGame(game) {
+            setUiMode("game");
+
             gameStatusElement.innerHTML = `
                 <div class="status-line">
                     게임:
@@ -1722,6 +1838,8 @@ let currentGameId = null;
             roundResultPanel.style.display =
                 "block";
 
+            playEffect("win");
+
             if (game.status === "GAME_END") {
                 const gameWinner =
                     game.players.find(
@@ -1814,12 +1932,7 @@ let currentGameId = null;
                             .map(
                                 card => `
                                     <span class="card">
-                                        <span class="card-month">
-                                            ${card.month}월
-                                        </span>
-                                        <span class="card-id">
-                                            ${card.card_id}
-                                        </span>
+                                        ${cardMarkup(card)}
                                     </span>
                                 `
                             )
@@ -1908,19 +2021,8 @@ let currentGameId = null;
                 button.className =
                     "card";
 
-                button.innerHTML = `
-                    <span
-                        class="card-month"
-                    >
-                        ${card.month}월
-                    </span>
-
-                    <span
-                        class="card-id"
-                    >
-                        ${card.card_id}
-                    </span>
-                `;
+                button.innerHTML =
+                    cardMarkup(card);
 
                 const isMyTurn =
                     game
@@ -1985,19 +2087,8 @@ let currentGameId = null;
                 element.className =
                     "card";
 
-                element.innerHTML = `
-                    <span
-                        class="card-month"
-                    >
-                        ${card.month}월
-                    </span>
-
-                    <span
-                        class="card-id"
-                    >
-                        ${card.card_id}
-                    </span>
-                `;
+                element.innerHTML =
+                    cardMarkup(card);
 
                 discardPileElement
                     .appendChild(
@@ -2378,19 +2469,8 @@ let currentGameId = null;
                 button.className =
                     "card";
 
-                button.innerHTML = `
-                    <span
-                        class="card-month"
-                    >
-                        ${card.month}월
-                    </span>
-
-                    <span
-                        class="card-id"
-                    >
-                        ${card.card_id}
-                    </span>
-                `;
+                button.innerHTML =
+                    cardMarkup(card);
 
                 button
                     .addEventListener(
@@ -2472,6 +2552,7 @@ let currentGameId = null;
                 }
 
                 if (data.drawn_card) {
+                    playEffect("draw");
                     showMessage(
                         `${data.drawn_card.month}월 `
                         + "카드를 뽑았습니다."
@@ -2534,6 +2615,8 @@ let currentGameId = null;
 
                     return;
                 }
+
+                playEffect("discard");
 
                 showMessage(
                     `${data.discarded_card.month}월 `
@@ -2712,6 +2795,8 @@ let currentGameId = null;
                     return;
                 }
 
+                playEffect("bbung");
+
                 if (
                     data.turn_phase
                     === "REACTION"
@@ -2849,6 +2934,7 @@ let currentGameId = null;
                     return;
                 }
 
+                playEffect("bomb");
                 showMessage(
                     "폭탄 바가지 선언!"
                 );
@@ -2935,6 +3021,7 @@ let currentGameId = null;
                     return;
                 }
 
+                playEffect("bagaji");
                 showMessage(
                     "일반 바가지 선언!"
                 );
@@ -3170,6 +3257,42 @@ let currentGameId = null;
             }
         }
 
+
+        homeButton.addEventListener(
+            "click",
+            () => setUiMode("lobby")
+        );
+
+        backToLobbyButton.addEventListener(
+            "click",
+            () => setUiMode("lobby")
+        );
+
+        musicToggle.addEventListener(
+            "click",
+            () => {
+                musicEnabled = !musicEnabled;
+                musicToggle.classList.toggle("is-off", !musicEnabled);
+
+                if (!musicEnabled) {
+                    lobbyBgm.pause();
+                    gameBgm.pause();
+                    return;
+                }
+
+                setUiMode(gameView.hidden ? "lobby" : "game");
+            }
+        );
+
+        soundToggle.addEventListener(
+            "click",
+            () => {
+                soundEnabled = !soundEnabled;
+                soundToggle.classList.toggle("is-off", !soundEnabled);
+            }
+        );
+
+        setUiMode("lobby");
 
         registerButton
             .addEventListener(

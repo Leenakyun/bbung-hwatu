@@ -2,414 +2,252 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-    <title>뻥 화투 테스트</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#17110e">
+    <title>뻥 화투</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
+<body class="lobby-mode">
+    <div class="ambient-glow ambient-glow-left"></div>
+    <div class="ambient-glow ambient-glow-right"></div>
 
-<body>
-    <h1>뻥 화투 브라우저 테스트</h1>
-
-    <div class="panel">
-        <h2>로그인</h2>
-
-        <div class="online-row">
-            <input
-                id="authUsername"
-                type="text"
-                placeholder="아이디 (3자 이상)"
-                maxlength="30"
-                autocomplete="username"
-            >
-
-            <input
-                id="authPassword"
-                type="password"
-                placeholder="비밀번호 (6자 이상)"
-                maxlength="100"
-                autocomplete="current-password"
-            >
-
-            <input
-                id="authNickname"
-                type="text"
-                placeholder="가입용 닉네임"
-                maxlength="20"
-            >
-        </div>
-
-        <div class="online-row">
-            <button id="registerButton" type="button">
-                회원가입
-            </button>
-
-            <button id="loginButton" type="button">
-                로그인
-            </button>
-
-            <button id="logoutButton" type="button">
-                로그아웃
-            </button>
-
-            <strong id="authStatus">
-                로그인 안 됨
-            </strong>
-        </div>
-    </div>
-
-    <div class="panel">
-        <label for="aiDifficultySelect">
-            AI 난이도:
-        </label>
-
-        <select id="aiDifficultySelect">
-            <option value="BEGINNER">
-                초보
-            </option>
-            <option value="INTERMEDIATE">
-                중수
-            </option>
-            <option value="ADVANCED">
-                고수
-            </option>
-            <option value="TAZZA">
-                타짜
-            </option>
-        </select>
-
-        <button id="createGameButton">
-            새 게임 만들기
-        </button>
-
-        <button id="refreshButton">
-            상태 새로고침
-        </button>
-
-        <button
-            id="drawButton"
-            disabled
-        >
-            카드 뽑기
-        </button>
-    </div>
-
-    <div class="panel">
-        <h2>온라인 대전</h2>
-
-        <div class="online-row">
-            <label for="onlineNickname">
-                닉네임:
-            </label>
-            <input
-                id="onlineNickname"
-                type="text"
-                value="플레이어"
-                maxlength="20"
-            >
-
-            <label for="onlineMaxPlayers">
-                최대 인원:
-            </label>
-            <select id="onlineMaxPlayers">
-                <option value="3">3명</option>
-                <option value="4">4명</option>
-                <option value="5">5명</option>
-                <option value="6">6명</option>
-            </select>
-
-            <button
-                id="createOnlineRoomButton"
-                type="button"
-            >
-                온라인 방 만들기
-            </button>
-        </div>
-
-        <div class="online-row">
-            <label for="onlineRoomId">
-                방 ID:
-            </label>
-            <input
-                id="onlineRoomId"
-                type="text"
-                placeholder="ROOM-001"
-            >
-
-            <button
-                id="joinOnlineRoomButton"
-                type="button"
-            >
-                방 참가
-            </button>
-        </div>
-
-        <div class="online-row">
-            <label for="dealerModeSelect">
-                첫 선:
-            </label>
-            <select id="dealerModeSelect">
-                <option value="DAY">
-                    낮 - 높은 월
-                </option>
-                <option value="NIGHT">
-                    밤 - 낮은 월
-                </option>
-            </select>
-
-            <button
-                id="startOnlineRoomButton"
-                type="button"
-            >
-                밤일낮짱 시작
-            </button>
-        </div>
-
-        <div class="online-row">
-            실시간 연결:
-            <span id="realtimeStatus">
-                연결 안 됨
+    <header class="topbar">
+        <button class="brand" id="homeButton" type="button" aria-label="로비로">
+            <span class="brand-mark">뻥</span>
+            <span class="brand-copy">
+                <strong>뻥 화투</strong>
+                <small>BBUNG HWATU</small>
             </span>
-        </div>
-
-        <div class="online-row">
-            내 플레이어 ID:
-            <span id="onlinePlayerId">
-                없음
-            </span>
-        </div>
-    </div>
-
-    <div
-        class="panel"
-        id="dealerSelectionPanel"
-        style="display: none;"
-    >
-        <h2>밤일낮짱</h2>
-
-        <div id="dealerSelectionMode"></div>
-        <div id="dealerSelectionHistory"></div>
-
-        <button
-            id="confirmOnlineStartButton"
-            type="button"
-            style="display: none;"
-        >
-            본게임 시작
-        </button>
-    </div>
-
-    <div class="panel">
-        <h2>게임 상태</h2>
-
-        <div id="gameStatus">
-            아직 게임이 없습니다.
-        </div>
-    </div>
-
-    <div
-        class="panel reaction-panel"
-        id="stopPanel"
-        style="display: none;"
-    >
-        <h2>STOP 선언</h2>
-
-        <div class="reaction-title">
-            STOP 여부는 직접 계산해서 판단하세요.
-        </div>
-
-        <button
-            id="stopCallButton"
-            type="button"
-        >
-            STOP 외치기
         </button>
 
-        <div
-            id="stopButtons"
-            style="display: none;"
-        ></div>
-    </div>
-
-    <div
-        class="panel reaction-panel"
-        id="surpriseStopPanel"
-        style="display: none;"
-    >
-        <h2>기습 STOP</h2>
-
-        <div class="reaction-title">
-            기습 STOP 여부는 직접 계산해서 판단하세요.
+        <div class="topbar-actions">
+            <span id="authStatus" class="auth-pill">로그인 안 됨</span>
+            <button id="musicToggle" class="icon-button" type="button" title="배경음악">♪</button>
+            <button id="soundToggle" class="icon-button" type="button" title="효과음">♬</button>
         </div>
+    </header>
 
-        <button
-            id="surpriseStopButton"
-            type="button"
-        >
-            기습 STOP 외치기
-        </button>
-    </div>
+    <main>
+        <section id="lobbyView" class="lobby-view">
+            <div class="lobby-hero">
+                <div class="hero-copy">
+                    <span class="eyebrow">우리 집 룰 그대로</span>
+                    <h1>패는 가볍게,<br><em>한 방은 세게.</em></h1>
+                    <p>3–6인 가족 룰 기반 뻥 화투. 온라인 대전과 AI 연습을 한 화면에서.</p>
+                    <div class="hero-badges">
+                        <span>20 라운드</span>
+                        <span>실시간 대전</span>
+                        <span>모바일 대응</span>
+                    </div>
+                </div>
+                <div class="hero-card-fan" aria-hidden="true">
+                    <img src="/assets/cards/1_1.png" alt="">
+                    <img src="/assets/cards/3_1.png" alt="">
+                    <img src="/assets/cards/8_1.png" alt="">
+                </div>
+            </div>
 
-    <div
-        class="panel reaction-panel"
-        id="bombBagajiPanel"
-        style="display: none;"
-    >
-        <h2>폭탄 바가지</h2>
+            <div class="lobby-grid">
+                <section class="glass-card login-card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="kicker">ACCOUNT</span>
+                            <h2>로그인</h2>
+                        </div>
+                        <span class="soft-label">온라인 대전 필수</span>
+                    </div>
+                    <div class="field-stack">
+                        <input id="authUsername" type="text" placeholder="아이디 (3자 이상)" maxlength="30" autocomplete="username">
+                        <input id="authPassword" type="password" placeholder="비밀번호 (6자 이상)" maxlength="100" autocomplete="current-password">
+                        <input id="authNickname" type="text" placeholder="가입용 닉네임" maxlength="20">
+                    </div>
+                    <div class="button-row">
+                        <button id="loginButton" class="primary-button" type="button">로그인</button>
+                        <button id="registerButton" class="ghost-button" type="button">회원가입</button>
+                        <button id="logoutButton" class="text-button" type="button">로그아웃</button>
+                    </div>
+                </section>
 
-        <div
-            id="bombBagajiStatus"
-            class="reaction-title"
-        ></div>
+                <section class="glass-card play-card solo-card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="kicker">SOLO</span>
+                            <h2>AI 대전</h2>
+                        </div>
+                        <div class="chip-stack" aria-hidden="true">
+                            <img src="/assets/ui/chips/1000.png" alt="">
+                            <img src="/assets/ui/chips/10,000.png" alt="">
+                        </div>
+                    </div>
+                    <p class="card-description">규칙 확인이나 손풀기는 AI전으로. 난이도를 고르고 바로 시작.</p>
+                    <label class="field-label" for="aiDifficultySelect">AI 난이도</label>
+                    <select id="aiDifficultySelect">
+                        <option value="BEGINNER">초보</option>
+                        <option value="INTERMEDIATE">중수</option>
+                        <option value="ADVANCED">고수</option>
+                        <option value="TAZZA">타짜</option>
+                    </select>
+                    <button id="createGameButton" class="primary-button full-button">AI 대전 시작</button>
+                </section>
 
-        <button
-            id="bombBagajiCallButton"
-            type="button"
-        >
-            폭탄 바가지 외치기
-        </button>
+                <section class="glass-card play-card online-card">
+                    <div class="section-heading">
+                        <div>
+                            <span class="kicker">ONLINE</span>
+                            <h2>온라인 대전</h2>
+                        </div>
+                        <span id="realtimeStatus" class="connection-pill">연결 안 됨</span>
+                    </div>
+                    <div class="two-column-fields">
+                        <div>
+                            <label class="field-label" for="onlineNickname">닉네임</label>
+                            <input id="onlineNickname" type="text" value="플레이어" maxlength="20">
+                        </div>
+                        <div>
+                            <label class="field-label" for="onlineMaxPlayers">최대 인원</label>
+                            <select id="onlineMaxPlayers">
+                                <option value="3">3명</option>
+                                <option value="4">4명</option>
+                                <option value="5">5명</option>
+                                <option value="6">6명</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="createOnlineRoomButton" class="primary-button full-button" type="button">방 만들기</button>
+                    <div class="join-row">
+                        <input id="onlineRoomId" type="text" placeholder="방 ID 입력">
+                        <button id="joinOnlineRoomButton" class="ghost-button" type="button">참가</button>
+                    </div>
+                    <div class="dealer-row">
+                        <select id="dealerModeSelect">
+                            <option value="DAY">낮 — 높은 월</option>
+                            <option value="NIGHT">밤 — 낮은 월</option>
+                        </select>
+                        <button id="startOnlineRoomButton" class="accent-button" type="button">밤일낮짱 시작</button>
+                    </div>
+                    <div class="room-meta">내 플레이어 ID <span id="onlinePlayerId">없음</span></div>
+                </section>
+            </div>
+        </section>
 
-        <button
-            id="bombBagajiCancelButton"
-            type="button"
-            style="display: none;"
-        >
-            폭탄 바가지 철회
-        </button>
-    </div>
+        <section id="gameView" class="game-view" hidden>
+            <div class="game-toolbar">
+                <div class="toolbar-left">
+                    <button id="backToLobbyButton" class="ghost-button compact-button" type="button">← 로비</button>
+                    <div id="gameStatus" class="game-status-strip">아직 게임이 없습니다.</div>
+                </div>
+                <div class="toolbar-actions">
+                    <button id="refreshButton" class="icon-text-button" type="button">↻ 상태 갱신</button>
+                    <button id="drawButton" class="primary-button draw-button" disabled>카드 뽑기</button>
+                </div>
+            </div>
 
-    <div
-        class="panel reaction-panel"
-        id="generalBagajiPanel"
-        style="display: none;"
-    >
-        <h2>일반 바가지</h2>
+            <div class="game-layout">
+                <section class="table-stage">
+                    <div class="table-backdrop"></div>
+                    <div id="players" class="players-rail"></div>
 
-        <div
-            id="generalBagajiStatus"
-            class="reaction-title"
-        ></div>
+                    <div class="table-center">
+                        <div class="deck-visual" aria-hidden="true">
+                            <img src="/assets/cards/1_4.png" alt="">
+                            <span>DECK</span>
+                        </div>
+                        <div class="discard-zone">
+                            <span class="zone-label">버림패</span>
+                            <div id="discardPile" class="discard-pile">없음</div>
+                        </div>
+                    </div>
 
-        <button
-            id="generalBagajiCallButton"
-            type="button"
-        >
-            일반 바가지 외치기
-        </button>
+                    <div class="reaction-dock">
+                        <section class="reaction-card" id="stopPanel" style="display:none;">
+                            <span class="reaction-tag">STOP</span>
+                            <div class="reaction-title">STOP 여부는 직접 계산해서 판단하세요.</div>
+                            <button id="stopCallButton" class="danger-button" type="button">STOP 외치기</button>
+                            <div id="stopButtons" class="reaction-options" style="display:none;"></div>
+                        </section>
 
-        <button
-            id="generalBagajiCancelButton"
-            type="button"
-            style="display: none;"
-        >
-            바가지 철회
-        </button>
-    </div>
+                        <section class="reaction-card" id="surpriseStopPanel" style="display:none;">
+                            <span class="reaction-tag">SURPRISE</span>
+                            <div class="reaction-title">기습 STOP 여부는 직접 계산해서 판단하세요.</div>
+                            <button id="surpriseStopButton" class="danger-button" type="button">기습 STOP 외치기</button>
+                        </section>
 
-    <div
-        class="panel reaction-panel"
-        id="bbungPanel"
-        style="display: none;"
-    >
-        <h2>뻥 가능</h2>
+                        <section class="reaction-card" id="bombBagajiPanel" style="display:none;">
+                            <span class="reaction-tag">BOMB</span>
+                            <div id="bombBagajiStatus" class="reaction-title"></div>
+                            <button id="bombBagajiCallButton" class="accent-button" type="button">폭탄 바가지</button>
+                            <button id="bombBagajiCancelButton" class="ghost-button" type="button" style="display:none;">철회</button>
+                        </section>
 
-        <div
-            id="bbungMessage"
-            class="reaction-title"
-        ></div>
+                        <section class="reaction-card" id="generalBagajiPanel" style="display:none;">
+                            <span class="reaction-tag">BAGAJI</span>
+                            <div id="generalBagajiStatus" class="reaction-title"></div>
+                            <button id="generalBagajiCallButton" class="accent-button" type="button">일반 바가지</button>
+                            <button id="generalBagajiCancelButton" class="ghost-button" type="button" style="display:none;">철회</button>
+                        </section>
 
-        <div>
-            <strong>
-                추가로 버릴 카드 선택
-            </strong>
-        </div>
+                        <section class="reaction-card bbung-card" id="bbungPanel" style="display:none;">
+                            <span class="reaction-tag">BBUNG</span>
+                            <div id="bbungMessage" class="reaction-title"></div>
+                            <small>추가로 버릴 카드 선택</small>
+                            <div id="bbungExtraCards" class="mini-card-row"></div>
+                            <div class="button-row">
+                                <button id="bbungConfirmButton" class="danger-button" disabled>뻥!</button>
+                                <button id="bbungPassButton" class="ghost-button">넘기기</button>
+                            </div>
+                        </section>
+                    </div>
 
-        <div id="bbungExtraCards"></div>
+                    <div class="hand-zone">
+                        <div class="hand-header">
+                            <div>
+                                <span class="zone-label">MY HAND</span>
+                                <h2>내 손패</h2>
+                            </div>
+                            <span class="hand-tip">버릴 수 있을 때 패를 눌러 선택</span>
+                        </div>
+                        <div id="myHand" class="my-hand">게임을 먼저 만들어 주세요.</div>
+                    </div>
+                </section>
 
-        <div>
-            <button
-                id="bbungConfirmButton"
-                disabled
-            >
-                뻥
-            </button>
+                <aside class="game-sidebar">
+                    <section class="side-card" id="dealerSelectionPanel" style="display:none;">
+                        <div class="side-card-title">밤일낮짱</div>
+                        <div id="dealerSelectionMode"></div>
+                        <div id="dealerSelectionHistory"></div>
+                        <button id="confirmOnlineStartButton" class="primary-button full-button" type="button" style="display:none;">본게임 시작</button>
+                    </section>
 
-            <button id="bbungPassButton">
-                넘기기
-            </button>
-        </div>
-    </div>
+                    <section class="side-card" id="roundResultPanel" style="display:none;">
+                        <div class="side-card-title">이번 판 결과</div>
+                        <div id="roundResult"></div>
+                    </section>
 
-    <div class="panel">
-        <h2>내 손패</h2>
+                    <section class="side-card" id="tieBreakPanel" style="display:none;">
+                        <div class="side-card-title">최종 동점 3장 승부</div>
+                        <div id="tieBreakInfo"></div>
+                        <button id="tieBreakDrawButton" class="primary-button full-button" type="button" disabled>승부 카드 뽑기</button>
+                    </section>
 
-        <div id="myHand">
-            게임을 먼저 만들어 주세요.
-        </div>
-    </div>
+                    <section class="side-card" id="nextRoundPanel" style="display:none;">
+                        <button id="nextRoundButton" class="primary-button full-button" type="button">다음 라운드 시작</button>
+                    </section>
 
-    <div
-        class="panel"
-        id="nextRoundPanel"
-        style="display: none;"
-    >
-        <button
-            id="nextRoundButton"
-            type="button"
-        >
-            다음 라운드 시작
-        </button>
-    </div>
+                    <section class="side-card rules-card">
+                        <div class="side-card-title">빠른 룰 메모</div>
+                        <div class="rule-line"><b>뻥</b><span>같은 월 2장 + 추가 버림 1장</span></div>
+                        <div class="rule-line"><b>폭탄</b><span>같은 월 3장은 0점 처리</span></div>
+                        <div class="rule-line"><b>STOP</b><span>조건 판단 후 직접 선언</span></div>
+                    </section>
+                </aside>
+            </div>
+        </section>
+    </main>
 
-    <div
-        class="panel"
-        id="tieBreakPanel"
-        style="display: none;"
-    >
-        <h2>최종 동점 3장 승부</h2>
+    <div id="message" class="toast" role="status" aria-live="polite"></div>
 
-        <div id="tieBreakInfo"></div>
-
-        <button
-            id="tieBreakDrawButton"
-            type="button"
-            disabled
-        >
-            승부 카드 뽑기
-        </button>
-    </div>
-
-    <div
-        class="panel"
-        id="roundResultPanel"
-        style="display: none;"
-    >
-        <h2>이번 판 결과</h2>
-        <div id="roundResult"></div>
-    </div>
-
-    <div class="panel">
-        <h2>플레이어</h2>
-
-        <div id="players"></div>
-    </div>
-
-    <div class="panel">
-        <h2>버림패</h2>
-
-        <div id="discardPile">
-            없음
-        </div>
-    </div>
-
-    <div class="panel">
-        <h2>메시지</h2>
-
-        <div id="message"></div>
-    </div>
+    <audio id="lobbyBgm" src="/assets/bgm/lobby.mp3" loop preload="none"></audio>
+    <audio id="gameBgm" src="/assets/bgm/game.mp3" loop preload="none"></audio>
 
     <script src="/js/app.js"></script>
 </body>
