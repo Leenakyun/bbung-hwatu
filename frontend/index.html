@@ -117,13 +117,22 @@
                             <option value="ADVANCED">고수</option>
                             <option value="TAZZA">타짜</option>
                         </select>
-                        <label id="beginnerTutorialOption" class="tutorial-toggle-row">
-                            <input id="beginnerTutorialToggle" type="checkbox" checked>
-                            <span>
-                                <b>게임 안내</b>
-                                <small>초보 난이도에서 튜토리얼처럼 진행을 알려줍니다.</small>
-                            </span>
-                        </label>
+                        <div id="beginnerTutorialOption" class="tutorial-option-box">
+                            <label class="tutorial-toggle-row">
+                                <input id="beginnerTutorialToggle" type="checkbox" checked>
+                                <span>
+                                    <b>게임 안내</b>
+                                    <small>초보 난이도에서 튜토리얼처럼 진행을 알려줍니다.</small>
+                                </span>
+                            </label>
+                            <label class="tutorial-level-row" for="beginnerTutorialLevel">
+                                <span>안내 수준</span>
+                                <select id="beginnerTutorialLevel">
+                                    <option value="BASIC">기본</option>
+                                    <option value="ADVANCED" selected>심화</option>
+                                </select>
+                            </label>
+                        </div>
                         <button id="createGameButton" class="primary-button full-button">AI 대전 시작</button>
                     </section>
 

@@ -131,6 +131,11 @@ let currentGameId = null;
                 "beginnerTutorialToggle"
             );
 
+        const beginnerTutorialLevel =
+            document.getElementById(
+                "beginnerTutorialLevel"
+            );
+
         const onlineNickname =
             document.getElementById(
                 "onlineNickname"
@@ -404,6 +409,7 @@ let currentGameId = null;
         let latestHumanPlayer = null;
         let currentAiDifficulty = null;
         let beginnerTutorialEnabled = false;
+        let beginnerTutorialMode = "ADVANCED";
         let tutorialFocusElement = null;
 
         const soundEffects = {
@@ -1708,6 +1714,10 @@ let currentGameId = null;
                     currentAiDifficulty === "BEGINNER"
                     && Boolean(beginnerTutorialToggle?.checked);
 
+                beginnerTutorialMode =
+                    beginnerTutorialLevel?.value
+                    || "ADVANCED";
+
                 const response =
                     await apiFetch(
                         "/api/games",
@@ -1855,7 +1865,11 @@ let currentGameId = null;
 
 
         function syncBeginnerTutorialOption() {
-            if (!beginnerTutorialOption || !beginnerTutorialToggle) {
+            if (
+                !beginnerTutorialOption
+                || !beginnerTutorialToggle
+                || !beginnerTutorialLevel
+            ) {
                 return;
             }
 
@@ -1864,6 +1878,9 @@ let currentGameId = null;
 
             beginnerTutorialOption.hidden = !isBeginner;
             beginnerTutorialToggle.disabled = !isBeginner;
+            beginnerTutorialLevel.disabled =
+                !isBeginner
+                || !beginnerTutorialToggle.checked;
         }
 
 
@@ -1896,7 +1913,11 @@ let currentGameId = null;
         }
 
 
-        function showTutorialGuide(title, text, focusElement = null) {
+        function showTutorialGuide(
+            title,
+            text,
+            focusElement = null
+        ) {
             if (
                 !tutorialGuide
                 || !beginnerTutorialEnabled
@@ -1914,6 +1935,118 @@ let currentGameId = null;
         }
 
 
+        function isAdvancedTutorial() {
+            return beginnerTutorialMode === "ADVANCED";
+        }
+
+
+        function getMonthCountMap(cards) {
+            const counts = new Map();
+
+            for (const card of cards || []) {
+                const month = Number(card.month);
+                counts.set(
+                    month,
+                    (counts.get(month) || 0) + 1
+                );
+            }
+
+            return counts;
+        }
+
+
+        function getBombMonths(cards) {
+            return Array
+                .from(getMonthCountMap(cards).entries())
+                .filter(([, count]) => count >= 3)
+                .map(([month]) => month)
+                .sort((a, b) => a - b);
+        }
+
+
+        function getPairMonths(cards) {
+            return Array
+                .from(getMonthCountMap(cards).entries())
+                .filter(([, count]) => count === 2)
+                .map(([month]) => month)
+                .sort((a, b) => a - b);
+        }
+
+
+        function getMyActiveDeclaration(game, humanPlayer) {
+            if (!game || !humanPlayer) {
+                return null;
+            }
+
+            const bomb =
+                (game.active_bomb_bagaji_declarations || [])
+                    .find(
+                        declaration =>
+                            declaration.player_id
+                            === humanPlayer.player_id
+                    );
+
+            if (bomb) {
+                return {
+                    type: "BOMB_BAGAJI",
+                    month: bomb.month,
+                };
+            }
+
+            const general =
+                (game.active_bagaji_declarations || [])
+                    .find(
+                        declaration =>
+                            declaration.player_id
+                            === humanPlayer.player_id
+                    );
+
+            if (general) {
+                return {
+                    type: "BAGAJI",
+                    month: general.month,
+                };
+            }
+
+            return null;
+        }
+
+
+        function explainRoundResult(game, humanPlayer) {
+            if (!humanPlayer) {
+                return "이번 판 결과와 점수를 확인하세요.";
+            }
+
+            const myRoundScore =
+                Number(humanPlayer.round_score || 0);
+            const myTotalScore =
+                Number(humanPlayer.total_score || 0);
+
+            const winner =
+                game.players.find(
+                    player =>
+                        player.player_id
+                        === game.round_winner_id
+                );
+
+            const winnerName =
+                winner
+                    ? winner.nickname
+                    : "승자";
+
+            const reason =
+                getRoundEndReasonLabel(game);
+
+            return (
+                `${winnerName}이(가) 이번 판을 끝냈습니다. `
+                + `승리 방식은 ${reason}이고, `
+                + `내 이번 판 점수는 ${myRoundScore}점, `
+                + `누적 점수는 ${myTotalScore}점입니다. `
+                + "이 게임은 누적 점수가 낮을수록 유리합니다."
+            );
+        }
+
+
         function renderBeginnerTutorial(game, humanPlayer) {
             if (
                 !beginnerTutorialEnabled
@@ -1925,6 +2058,8 @@ let currentGameId = null;
                 hideTutorialGuide();
                 return;
             }
+
+            const advanced = isAdvancedTutorial();
 
             if (game.status === "DEALER_SELECTION") {
                 const mode =
@@ -1939,7 +2074,16 @@ let currentGameId = null;
 
                 showTutorialGuide(
                     "먼저 선을 정해요",
-                    `현재는 ${mode} 규칙입니다. ${rule} 선 정하기 카드를 직접 뽑아보세요.`,
+                    advanced
+                        ? (
+                            `현재 한국시간 기준 ${mode} 규칙입니다. `
+                            + `${rule} 동점이면 동점자끼리 다시 뽑습니다. `
+                            + "이 카드는 본게임 덱과 별개입니다."
+                        )
+                        : (
+                            `현재는 ${mode} 규칙입니다. `
+                            + `${rule} 선 정하기 카드를 직접 뽑아보세요.`
+                        ),
                     dealerDrawButton
                 );
                 return;
@@ -1947,8 +2091,10 @@ let currentGameId = null;
 
             if (game.status === "ROUND_END") {
                 showTutorialGuide(
-                    "이번 판이 끝났어요",
-                    "이번 판 점수를 확인한 뒤 다음 라운드를 눌러 계속 진행하세요.",
+                    "이번 판 점수를 확인하세요",
+                    advanced
+                        ? explainRoundResult(game, humanPlayer)
+                        : "이번 판 점수를 확인한 뒤 다음 라운드를 눌러 계속 진행하세요.",
                     nextRoundButton
                 );
                 return;
@@ -1957,7 +2103,12 @@ let currentGameId = null;
             if (game.status === "GAME_END") {
                 showTutorialGuide(
                     "게임 종료",
-                    "모든 라운드가 끝났습니다. 총점이 가장 낮은 플레이어가 승리합니다."
+                    advanced
+                        ? (
+                            `내 최종 누적 점수는 ${Number(humanPlayer.total_score || 0)}점입니다. `
+                            + "모든 라운드의 누적 점수가 가장 낮은 플레이어가 최종 승리합니다."
+                        )
+                        : "모든 라운드가 끝났습니다. 총점이 가장 낮은 플레이어가 승리합니다."
                 );
                 return;
             }
@@ -1970,67 +2121,229 @@ let currentGameId = null;
                 return;
             }
 
-            const isMyTurn =
-                game.current_turn_player_id === humanPlayer.player_id;
+            const myDeclaration =
+                getMyActiveDeclaration(
+                    game,
+                    humanPlayer
+                );
 
-            if (!isMyTurn) {
+            if (advanced && myDeclaration) {
+                const label =
+                    myDeclaration.type === "BOMB_BAGAJI"
+                        ? "폭탄 바가지"
+                        : "바가지";
+
                 showTutorialGuide(
-                    "상대 차례예요",
-                    "상대가 어떤 월을 버리는지 봐두세요. 같은 월 2장이 있으면 뻥 기회가 생길 수 있습니다."
+                    `${label} 선언 중`,
+                    `${myDeclaration.month}월을 대상으로 선언 중입니다. `
+                    + "선언 조건이 깨지면 자동으로 해제되므로 별도의 철회 버튼은 없습니다.",
+                    declarationStatusBadge
                 );
                 return;
             }
 
-            if (game.turn_phase === "DRAW") {
+            if (
+                advanced
+                && bombBagajiPanel
+                && bombBagajiPanel.style.display !== "none"
+            ) {
+                const targetMonth =
+                    getBombBagajiTargetMonth(humanPlayer);
+
                 showTutorialGuide(
-                    "카드를 한 장 뽑아보세요",
-                    "가운데 카드 뒷면 덱을 누르면 손패에 카드 1장이 들어옵니다.",
-                    drawDeck
+                    "폭탄 바가지를 선언할 수 있어요",
+                    `${targetMonth}월 폭탄 바가지 조건이 만들어졌습니다. `
+                    + "선언하면 해당 월을 노리는 상태가 되고, 조건이 깨지면 자동 취소됩니다.",
+                    bombBagajiCallButton
                 );
+                return;
+            }
+
+            if (
+                advanced
+                && generalBagajiPanel
+                && generalBagajiPanel.style.display !== "none"
+            ) {
+                const targetMonth =
+                    getGeneralBagajiTargetMonth(humanPlayer);
+
+                showTutorialGuide(
+                    "바가지를 선언할 수 있어요",
+                    `${targetMonth}월 같은 패 2장을 가진 상태에서 일반 바가지를 선언할 수 있습니다. `
+                    + "대상 월을 다른 플레이어가 버리는 상황을 노리는 선언입니다.",
+                    generalBagajiCallButton
+                );
+                return;
+            }
+
+            if (
+                bbungPanel
+                && bbungPanel.style.display !== "none"
+            ) {
+                const discardedMonth =
+                    game.last_discarded_card
+                        ? game.last_discarded_card.month
+                        : "?";
+
+                showTutorialGuide(
+                    "뻥 기회가 왔어요",
+                    advanced
+                        ? (
+                            `상대가 ${discardedMonth}월을 버렸고, `
+                            + `내 손에 같은 ${discardedMonth}월 패가 2장 있어 뻥이 가능합니다. `
+                            + "뻥을 선언하면 화면에 표시되는 추가 버림 패까지 선택해 진행하세요."
+                        )
+                        : "상대가 버린 월과 같은 카드 2장이 있으면 뻥을 선언할 수 있습니다.",
+                    bbungPanel
+                );
+                return;
+            }
+
+            const isMyTurn =
+                game.current_turn_player_id
+                === humanPlayer.player_id;
+
+            if (!isMyTurn) {
+                if (advanced) {
+                    const pairMonths =
+                        getPairMonths(humanPlayer.hand);
+
+                    const pairHint =
+                        pairMonths.length
+                            ? ` 현재 내 손의 같은 월 2장: ${pairMonths.join(", ")}월.`
+                            : "";
+
+                    showTutorialGuide(
+                        "상대 차례예요",
+                        "상대가 버리는 월을 확인하세요. "
+                        + "내 손에 같은 월 2장이 있다면 뻥이나 바가지 판단에 중요합니다."
+                        + pairHint
+                    );
+                } else {
+                    showTutorialGuide(
+                        "상대 차례예요",
+                        "상대가 어떤 월을 버리는지 봐두세요. 같은 월 2장이 있으면 뻥 기회가 생길 수 있습니다."
+                    );
+                }
+                return;
+            }
+
+            if (game.turn_phase === "DRAW") {
+                if (advanced) {
+                    const bombMonths =
+                        getBombMonths(humanPlayer.hand);
+
+                    let extra = "";
+                    if (bombMonths.length) {
+                        extra =
+                            ` 현재 ${bombMonths.join(", ")}월은 같은 월 3장 이상이라 폭탄으로 계산될 수 있습니다.`;
+                    }
+
+                    showTutorialGuide(
+                        "덱에서 한 장 뽑으세요",
+                        "내 턴은 기본적으로 드로우 후 버리기 순서입니다. "
+                        + "가운데 카드 뒷면 덱을 눌러 1장을 뽑으세요."
+                        + extra,
+                        drawDeck
+                    );
+                } else {
+                    showTutorialGuide(
+                        "카드를 한 장 뽑아보세요",
+                        "가운데 카드 뒷면 덱을 누르면 손패에 카드 1장이 들어옵니다.",
+                        drawDeck
+                    );
+                }
                 return;
             }
 
             if (game.turn_phase === "DISCARD") {
                 const stopOptions =
-                    getAvailableStopOptions(humanPlayer.hand);
+                    getAvailableStopOptions(
+                        humanPlayer.hand
+                    );
 
                 if (stopOptions.length > 0) {
+                    const optionSummary =
+                        stopOptions
+                            .map(
+                                option =>
+                                    `${getStopLabel(option.type)} ${option.score}점`
+                            )
+                            .join(", ");
+
                     showTutorialGuide(
                         "STOP이 가능해요",
-                        "현재 손패로 STOP 조건을 만족했습니다. STOP 버튼을 눌러 카드 조합과 예상 점수를 확인해보세요.",
+                        advanced
+                            ? (
+                                `현재 가능한 STOP: ${optionSummary}. `
+                                + "STOP 버튼을 누르면 실제 6장 카드와 예상 점수를 비교해 선택할 수 있습니다."
+                            )
+                            : "현재 손패로 STOP 조건을 만족했습니다. STOP 버튼을 눌러 카드 조합과 예상 점수를 확인해보세요.",
                         stopCallButton
                     );
                     return;
                 }
 
-                showTutorialGuide(
-                    "카드 한 장을 버리세요",
-                    "손패에서 버릴 카드 1장을 누르세요. 손패는 월 숫자가 작은 순서대로 정렬되어 있습니다.",
-                    myHandElement
-                );
+                if (advanced) {
+                    const bombMonths =
+                        getBombMonths(humanPlayer.hand);
+                    const pairMonths =
+                        getPairMonths(humanPlayer.hand);
+
+                    const handNotes = [];
+
+                    if (bombMonths.length) {
+                        handNotes.push(
+                            `${bombMonths.join(", ")}월 폭탄 보유`
+                        );
+                    }
+
+                    if (pairMonths.length) {
+                        handNotes.push(
+                            `${pairMonths.join(", ")}월 2장 보유`
+                        );
+                    }
+
+                    const note =
+                        handNotes.length
+                            ? ` 현재 패 상태: ${handNotes.join(" / ")}.`
+                            : "";
+
+                    showTutorialGuide(
+                        "버릴 카드 1장을 선택하세요",
+                        "손패는 월 숫자가 작은 순서대로 정렬되어 있습니다. "
+                        + "폭탄 3장은 점수 계산에서 0점 취급되고, 같은 월 2장은 뻥/바가지 기회와 연결될 수 있습니다."
+                        + note,
+                        myHandElement
+                    );
+                } else {
+                    showTutorialGuide(
+                        "카드 한 장을 버리세요",
+                        "손패에서 버릴 카드 1장을 누르세요. 손패는 월 숫자가 작은 순서대로 정렬되어 있습니다.",
+                        myHandElement
+                    );
+                }
                 return;
             }
 
             if (game.turn_phase === "REACTION") {
-                if (bbungPanel && bbungPanel.style.display !== "none") {
-                    showTutorialGuide(
-                        "뻥 기회가 왔어요",
-                        "상대가 버린 월과 같은 카드 2장이 있으면 뻥을 선언할 수 있습니다.",
-                        bbungPanel
-                    );
-                    return;
-                }
-
                 showTutorialGuide(
-                    "반응을 기다리는 중",
-                    "뻥이나 다른 선언 기회가 있는지 확인하는 단계입니다."
+                    "반응 단계예요",
+                    advanced
+                        ? (
+                            "다른 플레이어의 버림패에 대해 뻥 같은 인터럽트가 가능한지 확인하는 단계입니다. "
+                            + "가능한 선언이 있으면 해당 버튼이 자동으로 나타납니다."
+                        )
+                        : "뻥이나 다른 선언 기회가 있는지 확인하는 단계입니다."
                 );
                 return;
             }
 
             showTutorialGuide(
                 "진행 중",
-                "현재 상태에 맞는 버튼이 나타나면 눌러 진행하세요."
+                advanced
+                    ? "현재 게임 상태를 기준으로 가능한 행동과 패의 의미를 계속 설명합니다."
+                    : "현재 상태에 맞는 버튼이 나타나면 눌러 진행하세요."
             );
         }
 
@@ -4817,6 +5130,21 @@ let currentGameId = null;
             .addEventListener(
                 "change",
                 syncBeginnerTutorialOption
+            );
+
+        beginnerTutorialToggle
+            .addEventListener(
+                "change",
+                syncBeginnerTutorialOption
+            );
+
+        beginnerTutorialLevel
+            .addEventListener(
+                "change",
+                () => {
+                    beginnerTutorialMode =
+                        beginnerTutorialLevel.value;
+                }
             );
 
         tutorialGuideOffButton

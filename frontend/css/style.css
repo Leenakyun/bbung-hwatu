@@ -3566,3 +3566,34 @@ body.game-mode .game-only-refresh {
         font-size: 7.5px;
     }
 }
+
+
+/* Gameplay v18: advanced beginner tutorial controls */
+.tutorial-option-box {
+    margin-top: 8px;
+    padding: 0;
+}
+.tutorial-option-box[hidden] {
+    display: none !important;
+}
+.tutorial-option-box .tutorial-toggle-row {
+    margin-top: 0;
+}
+.tutorial-level-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 5px;
+}
+.tutorial-level-row > span {
+    color: #9d9086;
+    font-size: 9px;
+    font-weight: 700;
+}
+.tutorial-level-row select {
+    width: 96px;
+    min-height: 30px;
+    padding: 4px 7px;
+    font-size: 10px;
+}
