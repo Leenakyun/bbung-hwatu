@@ -3990,7 +3990,9 @@ let currentGameId = null;
             }
         );
 
-        setUiMode("lobby");
+        // 인증 검증이 끝나기 전에는 로그인 화면을 기본으로 유지한다.
+        // refreshAuth()가 유효한 세션을 확인하면 로비로 전환한다.
+        setUiMode("auth");
 
         loginForm.addEventListener(
             "submit",
