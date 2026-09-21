@@ -1551,9 +1551,15 @@ def create_game():
         "LOCAL-USER",
     )
 
-    nickname = data.get(
-        "nickname",
-        "플레이어",
+    authenticated_user = get_authenticated_user()
+
+    nickname = (
+        authenticated_user.get("nickname")
+        if authenticated_user is not None
+        else data.get(
+            "nickname",
+            "플레이어",
+        )
     )
 
     ai_difficulty_value = data.get(

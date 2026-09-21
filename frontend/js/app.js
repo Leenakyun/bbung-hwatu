@@ -1692,7 +1692,8 @@ let currentGameId = null;
                                     owner_id:
                                         "LOCAL-USER",
                                     nickname:
-                                        "나경",
+                                        currentAuthUser?.nickname
+                                        || "플레이어",
                                     ai_difficulty:
                                         aiDifficultySelect
                                             .value,
