@@ -3311,3 +3311,141 @@ body.game-mode .game-only-refresh {
         display: none !important;
     }
 }
+
+
+/* Gameplay v16: visual STOP chooser */
+.hand-stop-options {
+    width: min(306px, 86vw);
+    max-height: min(62dvh, 470px);
+    padding: 8px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: rgba(22, 15, 12, .985);
+    border: 1px solid rgba(244,195,103,.20);
+}
+
+.stop-choice-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 7px;
+    padding: 0 1px;
+}
+.stop-choice-heading strong {
+    color: #fff1dc;
+    font-size: 12px;
+}
+.stop-choice-heading span {
+    color: #9f9186;
+    font-size: 8px;
+    text-align: right;
+}
+
+.stop-choice-list {
+    display: grid;
+    gap: 7px;
+}
+
+.stop-choice-button {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    padding: 7px;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 11px;
+    background: rgba(255,255,255,.045);
+    color: #e9ddd1;
+    text-align: left;
+}
+.stop-choice-button:active {
+    transform: scale(.985);
+    background: rgba(244,195,103,.10);
+    border-color: rgba(244,195,103,.38);
+}
+
+.stop-choice-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+.stop-choice-title {
+    color: #fff4df;
+    font-size: 11px;
+}
+.stop-choice-score {
+    color: #ffd58d;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.stop-card-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    overflow: hidden;
+}
+.stop-preview-card {
+    position: relative;
+    display: inline-block;
+    width: clamp(30px, 10.3vw, 42px);
+    aspect-ratio: 25 / 41;
+    flex: 0 1 auto;
+    overflow: hidden;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,.13);
+    background: #efe7da;
+}
+.stop-preview-card img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    object-position: center;
+}
+.stop-preview-card .card-month,
+.stop-preview-card .card-id {
+    display: none;
+}
+
+.stop-choice-reason {
+    margin-top: 5px;
+    color: #a99b90;
+    font-size: 8px;
+    line-height: 1.3;
+}
+
+.stop-choice-cancel {
+    width: 100%;
+    min-height: 31px;
+    margin-top: 7px;
+    padding: 5px 8px;
+    border-radius: 9px;
+    background: rgba(255,255,255,.055);
+    color: #c8bbb0;
+    border: 1px solid rgba(255,255,255,.08);
+    font-size: 9px;
+}
+
+@media (max-width: 720px) and (orientation: portrait) {
+    .hand-stop-options {
+        right: 0;
+        bottom: calc(100% + 5px);
+        width: min(306px, calc(100vw - 22px));
+        max-height: 58dvh;
+    }
+
+    .stop-preview-card {
+        width: clamp(31px, 10vw, 39px);
+    }
+
+    .stop-choice-heading strong,
+    .stop-choice-title,
+    .stop-choice-score {
+        font-size: 10px;
+    }
+}

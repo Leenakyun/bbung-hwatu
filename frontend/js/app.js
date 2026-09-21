@@ -386,6 +386,8 @@ let currentGameId = null;
         let soundEnabled = true;
         let toastTimer = null;
         let lastResultSoundKey = null;
+        let latestRenderedGame = null;
+        let latestHumanPlayer = null;
 
         const soundEffects = {
             draw: new Audio("/assets/sfx/draw.wav"),
@@ -1844,6 +1846,9 @@ let currentGameId = null;
                         === "HUMAN"
                 );
 
+            latestRenderedGame = game;
+            latestHumanPlayer = humanPlayer || null;
+
             const currentTurnPlayer =
                 game.players.find(
                     player =>
@@ -2691,109 +2696,269 @@ let currentGameId = null;
         }
 
 
+        function getStopOptionReason(stopType, cards) {
+            const months = (cards || []).map(card => Number(card.month));
+            const counts = new Map();
+
+            for (const month of months) {
+                counts.set(month, (counts.get(month) || 0) + 1);
+            }
+
+            const values = Array.from(counts.values()).sort((a, b) => a - b);
+            const hasFourPlusPair =
+                values.length === 2
+                && values[0] === 2
+                && values[1] === 4;
+            const sum = months.reduce((total, month) => total + month, 0);
+            const hasLowSum = sum <= 10;
+
+            if (stopType === "STRAIGHT") {
+                return "서로 다른 6개월이 연속";
+            }
+            if (stopType === "HIGH_SUM") {
+                return `6장 합계 ${sum}`;
+            }
+            if (stopType === "TTOI_TTOI") {
+                return "같은 월 2장씩 3쌍";
+            }
+            if (stopType === "MINUS_100") {
+                if (hasFourPlusPair && hasLowSum) {
+                    return "4장+2장 조합 · 합계 10 이하";
+                }
+                if (hasFourPlusPair) {
+                    return "같은 월 4장 + 다른 같은 월 2장";
+                }
+                return `6장 합계 ${sum} (10 이하)`;
+            }
+            if (stopType === "MINUS_200") {
+                return "4장+2장 조합 + 합계 10 이하";
+            }
+
+            return "";
+        }
+
+
+        function getAvailableStopOptions(cards) {
+            if (!Array.isArray(cards) || cards.length !== 6) {
+                return [];
+            }
+
+            const months = cards.map(card => Number(card.month));
+            const sortedMonths = [...months].sort((a, b) => a - b);
+            const counts = new Map();
+
+            for (const month of months) {
+                counts.set(month, (counts.get(month) || 0) + 1);
+            }
+
+            const countValues =
+                Array.from(counts.values()).sort((a, b) => a - b);
+            const sum =
+                months.reduce((total, month) => total + month, 0);
+
+            const isStraight =
+                new Set(months).size === 6
+                && sortedMonths.every(
+                    (month, index) =>
+                        month === sortedMonths[0] + index
+                );
+
+            const isHighSum = sum >= 60;
+
+            const isTtoiTtoi =
+                countValues.length === 3
+                && countValues.every(count => count === 2);
+
+            const hasFourPlusPair =
+                countValues.length === 2
+                && countValues[0] === 2
+                && countValues[1] === 4;
+
+            const hasLowSum = sum <= 10;
+
+            const options = [];
+
+            if (isStraight) {
+                options.push({
+                    type: "STRAIGHT",
+                    score: -sum,
+                });
+            }
+
+            if (isHighSum) {
+                options.push({
+                    type: "HIGH_SUM",
+                    score: -sum,
+                });
+            }
+
+            if (isTtoiTtoi) {
+                options.push({
+                    type: "TTOI_TTOI",
+                    score: 0,
+                });
+            }
+
+            if (hasFourPlusPair || hasLowSum) {
+                options.push({
+                    type: "MINUS_100",
+                    score: -100,
+                });
+            }
+
+            if (hasFourPlusPair && hasLowSum) {
+                options.push({
+                    type: "MINUS_200",
+                    score: -200,
+                });
+            }
+
+            return options.map(option => ({
+                ...option,
+                reason: getStopOptionReason(option.type, cards),
+                cards,
+            }));
+        }
+
+
         function renderStop(
             game,
             humanPlayer
         ) {
-            stopPanel.style.display =
-                "none";
-
-            stopButtons.style.display =
-                "none";
-
-            stopButtons.innerHTML =
-                "";
+            stopPanel.style.display = "none";
+            stopButtons.style.display = "none";
+            stopButtons.innerHTML = "";
 
             if (!humanPlayer) {
                 return;
             }
 
+            const availableStopOptions =
+                getAvailableStopOptions(humanPlayer.hand);
+
             const canCallStop =
-                game.status
-                    === "PLAYING"
-                && game.turn_phase
-                    === "DISCARD"
-                && game
-                    .current_turn_player_id
-                    === humanPlayer
-                        .player_id
-                && humanPlayer.hand_count
-                    === 6;
+                game.status === "PLAYING"
+                && game.turn_phase === "DISCARD"
+                && game.current_turn_player_id === humanPlayer.player_id
+                && humanPlayer.hand_count === 6
+                && availableStopOptions.length > 0;
 
             if (!canCallStop) {
                 return;
             }
 
-            stopPanel.style.display =
-                "block";
+            stopPanel.style.display = "inline-flex";
+            stopCallButton.setAttribute(
+                "aria-label",
+                `STOP 가능 ${availableStopOptions.length}개`
+            );
+        }
+
+
+        function createStopCardRow(cards) {
+            const row = document.createElement("div");
+            row.className = "stop-card-row";
+
+            for (const card of cards) {
+                const cardElement = document.createElement("span");
+                cardElement.className = "stop-preview-card";
+                cardElement.innerHTML = cardMarkup(card);
+                row.appendChild(cardElement);
+            }
+
+            return row;
         }
 
 
         function openStopChoices() {
-            stopButtons.innerHTML =
-                "";
+            stopButtons.innerHTML = "";
 
-            const stopTypes = [
-                "STRAIGHT",
-                "HIGH_SUM",
-                "TTOI_TTOI",
-                "MINUS_100",
-                "MINUS_200",
-            ];
+            const game = latestRenderedGame;
+            const humanPlayer = latestHumanPlayer;
 
-            for (
-                const stopType
-                of stopTypes
-            ) {
-                const button =
-                    document
-                        .createElement(
-                            "button"
-                        );
+            if (!game || !humanPlayer) {
+                stopButtons.style.display = "none";
+                return;
+            }
 
-                button.textContent =
-                    getStopLabel(
-                        stopType
-                    );
+            const options = getAvailableStopOptions(humanPlayer.hand);
+
+            if (!options.length) {
+                stopButtons.style.display = "none";
+                showMessage("현재 선언 가능한 STOP이 없습니다.");
+                return;
+            }
+
+            const heading = document.createElement("div");
+            heading.className = "stop-choice-heading";
+            heading.innerHTML = `
+                <strong>STOP 선택</strong>
+                <span>가능한 패 조합과 예상 점수</span>
+            `;
+            stopButtons.appendChild(heading);
+
+            const optionList = document.createElement("div");
+            optionList.className = "stop-choice-list";
+
+            for (const option of options) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "stop-choice-button";
+                button.setAttribute(
+                    "aria-label",
+                    `${getStopLabel(option.type)} STOP, 예상 점수 ${option.score}`
+                );
+
+                const titleRow = document.createElement("div");
+                titleRow.className = "stop-choice-title-row";
+
+                const title = document.createElement("strong");
+                title.className = "stop-choice-title";
+                title.textContent = `${getStopLabel(option.type)} STOP`;
+
+                const score = document.createElement("b");
+                score.className = "stop-choice-score";
+                score.textContent = `예상 ${option.score}점`;
+
+                titleRow.append(title, score);
+
+                const reason = document.createElement("div");
+                reason.className = "stop-choice-reason";
+                reason.textContent = option.reason;
+
+                button.append(
+                    titleRow,
+                    createStopCardRow(option.cards),
+                    reason
+                );
 
                 button.addEventListener(
                     "click",
                     () => {
-                        declareStop(
-                            stopType
-                        );
+                        stopButtons.style.display = "none";
+                        declareStop(option.type);
                     }
                 );
 
-                stopButtons
-                    .appendChild(
-                        button
-                    );
+                optionList.appendChild(button);
             }
 
-            const cancelButton =
-                document
-                    .createElement(
-                        "button"
-                    );
+            stopButtons.appendChild(optionList);
 
-            cancelButton.textContent =
-                "취소";
+            const cancelButton = document.createElement("button");
+            cancelButton.type = "button";
+            cancelButton.className = "stop-choice-cancel";
+            cancelButton.textContent = "취소";
 
             cancelButton.addEventListener(
                 "click",
                 () => {
-                    stopButtons.style.display =
-                        "none";
+                    stopButtons.style.display = "none";
                 }
             );
 
-            stopButtons.appendChild(
-                cancelButton
-            );
-
-            stopButtons.style.display =
-                "block";
+            stopButtons.appendChild(cancelButton);
+            stopButtons.style.display = "block";
         }
 
 
