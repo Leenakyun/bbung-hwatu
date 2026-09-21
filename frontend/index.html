@@ -31,8 +31,13 @@
         <div class="topbar-actions">
             <button id="rulesButton" class="text-button rules-open-button" type="button">룰 설명서</button>
             <span id="authStatus" class="auth-pill">로그인 안 됨</span>
-            <button id="musicToggle" class="icon-button" type="button" title="배경음악">♪</button>
-            <button id="soundToggle" class="icon-button" type="button" title="효과음">♬</button>
+            <div class="sound-control-stack">
+                <div class="sound-control-row">
+                    <button id="musicToggle" class="icon-button" type="button" title="배경음악">♪</button>
+                    <button id="soundToggle" class="icon-button" type="button" title="효과음">♬</button>
+                </div>
+                <button id="refreshButton" class="icon-text-button game-only-refresh" type="button">↻ 상태 갱신</button>
+            </div>
         </div>
     </header>
 
@@ -162,10 +167,7 @@
                     <button id="backToLobbyButton" class="ghost-button compact-button" type="button">← 로비</button>
                     <div id="gameStatus" class="game-status-strip">아직 게임이 없습니다.</div>
                 </div>
-                <div class="toolbar-actions">
-                    <button id="refreshButton" class="icon-text-button" type="button">↻ 상태 갱신</button>
-                    <span id="declarationStatusBadge" class="declaration-status-badge" style="display:none;" aria-live="polite"></span>
-                </div>
+
             </div>
 
             <section class="side-card dealer-selection-banner" id="dealerSelectionPanel" style="display:none;">
@@ -216,7 +218,10 @@
                                 <span class="zone-label">MY HAND</span>
                                 <h2>내 손패</h2>
                             </div>
-                            <span class="hand-tip">버릴 수 있을 때 패를 눌러 선택</span>
+                            <div class="my-hand-status-area">
+                                <span id="declarationStatusBadge" class="player-declaration-badge" style="display:none;" aria-live="polite"></span>
+                                <span class="hand-tip">버릴 수 있을 때 패를 눌러 선택</span>
+                            </div>
                         </div>
                         <div id="myHand" class="my-hand">게임을 먼저 만들어 주세요.</div>
                     </div>

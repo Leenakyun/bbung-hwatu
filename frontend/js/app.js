@@ -2331,13 +2331,13 @@ let currentGameId = null;
             );
 
             if (bomb) {
-                declarationStatusBadge.textContent = `폭탄 바가지 선언 중 · ${bomb.month}월`;
+                declarationStatusBadge.textContent = `폭탄 바가지 선언중`;
                 declarationStatusBadge.style.display = "inline-flex";
                 return;
             }
 
             if (general) {
-                declarationStatusBadge.textContent = `바가지 선언 중 · ${general.month}월`;
+                declarationStatusBadge.textContent = `바가지 선언중`;
                 declarationStatusBadge.style.display = "inline-flex";
             }
         }
@@ -2443,6 +2443,29 @@ let currentGameId = null;
         }
 
 
+        function playerDeclarationBadgeMarkup(game, playerId) {
+            if (!game || !playerId) {
+                return "";
+            }
+
+            const bomb = (game.active_bomb_bagaji_declarations || []).find(
+                item => item.player_id === playerId
+            );
+            if (bomb) {
+                return `<div class="player-declaration-badge bomb">폭탄 바가지 선언중</div>`;
+            }
+
+            const general = (game.active_bagaji_declarations || []).find(
+                item => item.player_id === playerId
+            );
+            if (general) {
+                return `<div class="player-declaration-badge general">바가지 선언중</div>`;
+            }
+
+            return "";
+        }
+
+
         function renderPlayers(
             players,
             game,
@@ -2529,6 +2552,7 @@ let currentGameId = null;
                             ? `<div class="bbung-count">뻥 ${player.bbung_count}</div>`
                             : ""
                     }
+                    ${playerDeclarationBadgeMarkup(game, player.player_id)}
                     ${handHtml}
                 `;
 
