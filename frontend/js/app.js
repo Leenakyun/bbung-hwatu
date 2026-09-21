@@ -2047,6 +2047,256 @@ let currentGameId = null;
         }
 
 
+        function getBestStraightWindow(cards) {
+            const uniqueMonths =
+                Array.from(
+                    new Set(
+                        (cards || []).map(
+                            card => Number(card.month)
+                        )
+                    )
+                ).sort((a, b) => a - b);
+
+            let best = null;
+
+            for (let start = 1; start <= 7; start += 1) {
+                const windowMonths =
+                    Array.from(
+                        { length: 6 },
+                        (_, index) => start + index
+                    );
+
+                const matched =
+                    windowMonths.filter(
+                        month => uniqueMonths.includes(month)
+                    );
+
+                const missing =
+                    windowMonths.filter(
+                        month => !uniqueMonths.includes(month)
+                    );
+
+                const candidate = {
+                    start,
+                    end: start + 5,
+                    matched,
+                    missing,
+                    matchCount: matched.length,
+                };
+
+                if (
+                    !best
+                    || candidate.matchCount > best.matchCount
+                    || (
+                        candidate.matchCount === best.matchCount
+                        && candidate.missing.length < best.missing.length
+                    )
+                ) {
+                    best = candidate;
+                }
+            }
+
+            return best;
+        }
+
+
+        function getWinningHandHint(cards) {
+            if (!Array.isArray(cards) || cards.length === 0) {
+                return "";
+            }
+
+            const months =
+                cards.map(card => Number(card.month));
+            const counts = getMonthCountMap(cards);
+            const entries =
+                Array.from(counts.entries())
+                    .sort((a, b) => a[0] - b[0]);
+
+            const pairs =
+                entries
+                    .filter(([, count]) => count === 2)
+                    .map(([month]) => month);
+
+            const triples =
+                entries
+                    .filter(([, count]) => count === 3)
+                    .map(([month]) => month);
+
+            const quads =
+                entries
+                    .filter(([, count]) => count === 4)
+                    .map(([month]) => month);
+
+            const singles =
+                entries
+                    .filter(([, count]) => count === 1)
+                    .map(([month]) => month);
+
+            const sum =
+                months.reduce(
+                    (total, month) => total + month,
+                    0
+                );
+
+            const cardsNeeded =
+                Math.max(0, 6 - cards.length);
+
+            const stopOptions =
+                cards.length === 6
+                    ? getAvailableStopOptions(cards)
+                    : [];
+
+            if (stopOptions.length) {
+                const best =
+                    [...stopOptions].sort(
+                        (a, b) => a.score - b.score
+                    )[0];
+
+                return (
+                    `이미 ${getStopLabel(best.type)} STOP 조건이 완성되어 있습니다. `
+                    + `예상 점수는 ${best.score}점입니다.`
+                );
+            }
+
+            if (quads.length) {
+                const quadMonth = quads[0];
+
+                if (pairs.length) {
+                    return (
+                        `현재 ${quadMonth}월 4장과 ${pairs[0]}월 2장이 모여 `
+                        + "-100 계열 완성에 매우 가깝습니다. "
+                        + "이 조합은 깨지지 않게 유지하는 방향이 좋습니다."
+                    );
+                }
+
+                if (singles.length) {
+                    return (
+                        `현재 ${quadMonth}월 4장을 확보했습니다. `
+                        + `남은 패에서는 ${singles.join(", ")}월 중 하나를 한 장 더 맞춰 `
+                        + "4장+2장 조합을 만드는 방향이 좋습니다."
+                    );
+                }
+            }
+
+            if (triples.length) {
+                const tripleMonth = triples[0];
+
+                if (pairs.length) {
+                    return (
+                        `현재 ${tripleMonth}월 3장 + ${pairs[0]}월 2장입니다. `
+                        + `${tripleMonth}월 한 장을 더 모으면 4장+2장 계열을 노릴 수 있으므로 `
+                        + `${tripleMonth}월을 가장 우선해서 보는 편이 좋습니다.`
+                    );
+                }
+
+                return (
+                    `현재 ${tripleMonth}월이 3장이라 폭탄 기반이 강합니다. `
+                    + `${tripleMonth}월 4번째 패를 노리면서, 다른 월은 2장을 맞춰 `
+                    + "4장+2장 STOP 방향을 함께 보는 것이 좋습니다."
+                );
+            }
+
+            if (pairs.length >= 2) {
+                const singletonTarget =
+                    singles.length
+                        ? singles[0]
+                        : null;
+
+                if (singletonTarget !== null) {
+                    return (
+                        `현재 ${pairs.join(", ")}월이 각각 2장씩 모였습니다. `
+                        + `또이또이를 노리기 좋은 형태라서 ${singletonTarget}월 같은 `
+                        + "홀수 장 패를 한 장 더 맞춰 세 번째 쌍을 만드는 방향이 좋습니다."
+                    );
+                }
+
+                return (
+                    `현재 ${pairs.join(", ")}월 쌍이 잡혀 있습니다. `
+                    + "또이또이 완성을 위해 새로운 쌍 하나를 더 만드는 방향이 좋습니다."
+                );
+            }
+
+            const straight =
+                getBestStraightWindow(cards);
+
+            if (
+                straight
+                && straight.matchCount >= 4
+                && straight.missing.length <= 2
+            ) {
+                return (
+                    `현재 ${straight.start}~${straight.end}월 연속 구간에 `
+                    + `${straight.matchCount}장이 들어와 있습니다. `
+                    + `빠진 ${straight.missing.join(", ")}월을 모으면 `
+                    + "스트레이트 STOP을 노릴 수 있습니다."
+                );
+            }
+
+            if (pairs.length === 1 && singles.length >= 2) {
+                return (
+                    `현재 ${pairs[0]}월 한 쌍이 있습니다. `
+                    + `${singles.join(", ")}월 중 하나를 한 장 더 맞춰 두 번째 쌍을 만들면 `
+                    + "또이또이 쪽으로 발전시키기 좋습니다."
+                );
+            }
+
+            const remainingSlots =
+                Math.max(0, 6 - cards.length);
+
+            const lowSumReachable =
+                sum + remainingSlots <= 10;
+
+            if (
+                lowSumReachable
+                && sum <= Math.max(8, cards.length * 2)
+            ) {
+                return (
+                    `현재 ${cards.length}장 합계가 ${sum}로 낮습니다. `
+                    + "1~2월처럼 작은 월을 유지하면 6장 합계 10 이하인 "
+                    + "-100 STOP을 노릴 여지가 있습니다."
+                );
+            }
+
+            const highSumThreshold =
+                cards.length >= 5 ? 43 : cards.length * 9;
+
+            if (sum >= highSumThreshold) {
+                return (
+                    `현재 ${cards.length}장 합계가 ${sum}로 높은 편입니다. `
+                    + "10~12월 같은 높은 월을 유지하면 6장 합계 60 이상 STOP을 "
+                    + "노리기 좋습니다."
+                );
+            }
+
+            if (straight && straight.matchCount >= 3) {
+                return (
+                    `현재 가장 이어지기 좋은 구간은 ${straight.start}~${straight.end}월입니다. `
+                    + `특히 ${straight.missing.slice(0, 3).join(", ")}월이 들어오면 `
+                    + "스트레이트 방향이 더 좋아집니다."
+                );
+            }
+
+            if (singles.length) {
+                const lowSingles =
+                    singles.filter(month => month <= 4);
+
+                if (lowSingles.length >= 2) {
+                    return (
+                        `아직 뚜렷한 완성형은 없지만 낮은 월 패가 여러 장 있습니다. `
+                        + `${lowSingles.join(", ")}월을 너무 쉽게 버리지 말고 `
+                        + "낮은 합계 STOP 가능성을 보면서 같은 월 쌍이 생기는지 확인하는 편이 좋습니다."
+                    );
+                }
+            }
+
+            return (
+                "아직 한 방향으로 강하게 몰린 패는 아닙니다. "
+                + "우선 같은 월 2장을 만드는 쪽을 보고, "
+                + "동시에 6개월 연속 구간이 만들어지는지 확인하는 것이 좋습니다."
+            );
+        }
+
+
         function renderBeginnerTutorial(game, humanPlayer) {
             if (
                 !beginnerTutorialEnabled
@@ -2213,11 +2463,19 @@ let currentGameId = null;
                             ? ` 현재 내 손의 같은 월 2장: ${pairMonths.join(", ")}월.`
                             : "";
 
+                    const winningHint =
+                        getWinningHandHint(
+                            humanPlayer.hand
+                        );
+
                     showTutorialGuide(
                         "상대 차례예요",
                         "상대가 버리는 월을 확인하세요. "
                         + "내 손에 같은 월 2장이 있다면 뻥이나 바가지 판단에 중요합니다."
                         + pairHint
+                        + (winningHint
+                            ? ` 현재 패 방향: ${winningHint}`
+                            : "")
                     );
                 } else {
                     showTutorialGuide(
@@ -2239,11 +2497,19 @@ let currentGameId = null;
                             ` 현재 ${bombMonths.join(", ")}월은 같은 월 3장 이상이라 폭탄으로 계산될 수 있습니다.`;
                     }
 
+                    const winningHint =
+                        getWinningHandHint(
+                            humanPlayer.hand
+                        );
+
                     showTutorialGuide(
                         "덱에서 한 장 뽑으세요",
                         "내 턴은 기본적으로 드로우 후 버리기 순서입니다. "
                         + "가운데 카드 뒷면 덱을 눌러 1장을 뽑으세요."
-                        + extra,
+                        + extra
+                        + (winningHint
+                            ? ` 현재 패 방향: ${winningHint}`
+                            : ""),
                         drawDeck
                     );
                 } else {
@@ -2309,11 +2575,19 @@ let currentGameId = null;
                             ? ` 현재 패 상태: ${handNotes.join(" / ")}.`
                             : "";
 
+                    const winningHint =
+                        getWinningHandHint(
+                            humanPlayer.hand
+                        );
+
                     showTutorialGuide(
                         "버릴 카드 1장을 선택하세요",
                         "손패는 월 숫자가 작은 순서대로 정렬되어 있습니다. "
                         + "폭탄 3장은 점수 계산에서 0점 취급되고, 같은 월 2장은 뻥/바가지 기회와 연결될 수 있습니다."
-                        + note,
+                        + note
+                        + (winningHint
+                            ? ` 현재 패 방향: ${winningHint}`
+                            : ""),
                         myHandElement
                     );
                 } else {

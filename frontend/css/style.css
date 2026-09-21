@@ -3649,3 +3649,18 @@ body.game-mode .game-only-refresh {
         font-size: 9px;
     }
 }
+
+
+/* Gameplay v18.2: room for advanced winning-hand direction hints */
+@media (max-width: 720px) and (orientation: portrait) {
+    .tutorial-guide {
+        width: min(282px, calc(100vw - 14px));
+    }
+
+    .tutorial-guide p {
+        max-height: 92px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 2px;
+    }
+}
