@@ -779,6 +779,7 @@ def serialize_game(game):
             state.current_turn_player_id
         ),
         "round_number": state.round_number,
+        "max_rounds": state.max_rounds,
         "deck_count": (
             len(state.deck.cards)
             if state.deck is not None

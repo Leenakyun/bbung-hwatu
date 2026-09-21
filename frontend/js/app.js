@@ -1850,23 +1850,28 @@ let currentGameId = null;
                         === game.current_turn_player_id
                 );
 
+            const totalRounds = game.max_rounds || 20;
+            const myTotalScore = humanPlayer ? humanPlayer.total_score : 0;
+
             gameStatusElement.innerHTML = `
-                <div class="status-line status-primary">
-                    ${game.round_number}R / 20
+                <div class="status-line status-primary round-hud" aria-label="현재 라운드">
+                    <span class="hud-label">라운드</span>
+                    <b>${game.round_number}<span class="hud-divider">/</span>${totalRounds}</b>
                 </div>
 
-                <div class="status-line">
-                    내 점수
-                    <b>${humanPlayer ? humanPlayer.total_score : 0}</b>
+                <div class="status-line score-hud" aria-label="내 총합 점수">
+                    <span class="hud-label">내 총점</span>
+                    <b>${myTotalScore}</b>
                 </div>
 
-                <div class="status-line">
-                    현재 턴
+                <div class="status-line turn-hud">
+                    <span class="hud-label">현재 턴</span>
                     <b>${currentTurnPlayer ? currentTurnPlayer.nickname : "-"}</b>
                 </div>
 
-                <div class="status-line status-secondary">
-                    덱 ${game.deck_count}
+                <div class="status-line status-secondary deck-count-hud">
+                    <span class="hud-label">남은 패</span>
+                    <b>${game.deck_count}</b>
                 </div>
             `;
 
@@ -2507,10 +2512,15 @@ let currentGameId = null;
                 element.innerHTML = `
                     <div class="player-head">
                         <strong>${player.nickname}</strong>
-                        <span>${player.hand_count}장</span>
+                        <div class="opponent-card-count" aria-label="보유 패 ${player.hand_count}장">
+                            <span class="mini-card-back-stack" aria-hidden="true">
+                                <i></i><i></i><i></i>
+                            </span>
+                            <b>×${player.hand_count}</b>
+                        </div>
                     </div>
                     <div class="player-score-row">
-                        <span>합계 ${player.total_score}</span>
+                        <span>총점 <b>${player.total_score}</b></span>
                         <span>이번 판 ${player.round_score}</span>
                     </div>
                     ${

@@ -2826,7 +2826,7 @@ body.game-mode main {
 }
 
 
-/* Portrait-only game notice for phones. The lobby remains usable in landscape. */
+/* Portrait-only app notice for phones. All app screens are portrait-only. */
 .portrait-only-overlay {
     display: none;
     position: fixed;
@@ -2882,7 +2882,130 @@ body.game-mode main {
 }
 
 @media (orientation: landscape) and (max-height: 600px) {
-    body.game-mode .portrait-only-overlay {
+    .portrait-only-overlay {
         display: flex;
+    }
+}
+
+
+/* Gameplay v14: high-visibility score / round / opponent hand HUD */
+.game-status-strip .hud-label {
+    opacity: .72;
+    font-size: .86em;
+    font-weight: 600;
+}
+
+.game-status-strip .status-line b {
+    color: #fff4de;
+    font-size: 1.08em;
+}
+
+.game-status-strip .score-hud {
+    border-color: rgba(244, 195, 103, .34);
+    background: rgba(116, 70, 26, .28);
+}
+
+.game-status-strip .score-hud b {
+    color: #ffd58d;
+    font-size: 1.24em;
+}
+
+.hud-divider {
+    margin: 0 2px;
+    opacity: .55;
+    font-weight: 500;
+}
+
+.opponent-card-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 34px;
+    justify-content: flex-end;
+}
+
+.opponent-card-count > b {
+    color: #fff1d5;
+    font-size: 10px;
+    line-height: 1;
+}
+
+.mini-card-back-stack {
+    position: relative;
+    display: inline-block;
+    width: 18px;
+    height: 27px;
+    flex: 0 0 18px;
+}
+
+.mini-card-back-stack i {
+    position: absolute;
+    top: 2px;
+    width: 13px;
+    aspect-ratio: 25 / 41;
+    border: 1px solid rgba(246, 224, 190, .68);
+    border-radius: 2px;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,.08) 25%, transparent 25%) 0 0 / 5px 5px,
+        linear-gradient(315deg, rgba(255,255,255,.06) 25%, transparent 25%) 0 0 / 5px 5px,
+        linear-gradient(180deg, #8e2f29, #4e1716);
+    box-shadow: 1px 1px 2px rgba(0,0,0,.35);
+}
+
+.mini-card-back-stack i:nth-child(1) { left: 0; transform: rotate(-6deg); }
+.mini-card-back-stack i:nth-child(2) { left: 3px; }
+.mini-card-back-stack i:nth-child(3) { left: 6px; transform: rotate(5deg); }
+
+@media (max-width: 720px) and (orientation: portrait) {
+    .game-status-strip {
+        gap: 3px;
+    }
+
+    .game-status-strip .status-line {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        min-height: 30px;
+        padding: 4px 6px;
+    }
+
+    .game-status-strip .score-hud {
+        order: -1;
+    }
+
+    .game-status-strip .score-hud b {
+        font-size: 12px;
+    }
+
+    .game-status-strip .round-hud b,
+    .game-status-strip .turn-hud b,
+    .game-status-strip .deck-count-hud b {
+        font-size: 10px;
+    }
+
+    .players-rail .player {
+        min-height: 54px;
+    }
+
+    .players-rail .player-head {
+        align-items: center;
+        gap: 3px;
+    }
+
+    .players-rail .player-head > span {
+        display: none;
+    }
+
+    .players-rail .player-score-row {
+        margin-top: 1px;
+    }
+
+    .players-rail .player-score-row span:first-child b {
+        color: #ffd58d;
+        font-size: 8px;
+    }
+
+    .opponent-card-count > b {
+        font-size: 9px;
     }
 }
