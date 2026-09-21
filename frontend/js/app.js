@@ -2615,7 +2615,8 @@ let currentGameId = null;
                         "click",
                         () => {
                             discardCard(
-                                card.card_id
+                                card.card_id,
+                                button
                             );
                         }
                     );
@@ -3236,6 +3237,128 @@ let currentGameId = null;
         }
 
 
+        function prefersReducedMotion() {
+            return (
+                window.matchMedia
+                && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            );
+        }
+
+
+        async function animateCardFlight({
+            card,
+            fromElement,
+            toElement,
+            direction = "draw",
+        }) {
+            if (
+                prefersReducedMotion()
+                || !fromElement
+                || !toElement
+                || !card
+            ) {
+                return;
+            }
+
+            const fromRect = fromElement.getBoundingClientRect();
+            const toRect = toElement.getBoundingClientRect();
+
+            if (
+                !fromRect.width
+                || !fromRect.height
+                || !toRect.width
+                || !toRect.height
+            ) {
+                return;
+            }
+
+            const targetWidth = Math.max(
+                30,
+                Math.min(
+                    direction === "draw" ? 48 : fromRect.width,
+                    58
+                )
+            );
+            const targetHeight = targetWidth * 41 / 25;
+
+            const startX =
+                fromRect.left
+                + fromRect.width / 2
+                - targetWidth / 2;
+            const startY =
+                fromRect.top
+                + fromRect.height / 2
+                - targetHeight / 2;
+
+            const endX =
+                toRect.left
+                + toRect.width / 2
+                - targetWidth / 2;
+            const endY =
+                toRect.top
+                + toRect.height / 2
+                - targetHeight / 2;
+
+            const ghost = document.createElement("div");
+            ghost.className =
+                `card-flight card-flight-${direction}`;
+            ghost.style.left = `${startX}px`;
+            ghost.style.top = `${startY}px`;
+            ghost.style.width = `${targetWidth}px`;
+            ghost.style.height = `${targetHeight}px`;
+            ghost.innerHTML = cardMarkup(card);
+            document.body.appendChild(ghost);
+
+            if (!ghost.animate) {
+                ghost.style.transform =
+                    `translate(${endX - startX}px, ${endY - startY}px)`;
+                await new Promise(resolve => setTimeout(resolve, 280));
+                ghost.remove();
+                return;
+            }
+
+            const midX = (endX - startX) * 0.52;
+            const midY =
+                (endY - startY) * 0.45
+                - (direction === "draw" ? 18 : 10);
+
+            const animation = ghost.animate(
+                [
+                    {
+                        transform: "translate(0, 0) scale(.94) rotate(0deg)",
+                        opacity: 0.98,
+                    },
+                    {
+                        transform:
+                            `translate(${midX}px, ${midY}px) `
+                            + "scale(1.03) rotate(-2deg)",
+                        opacity: 1,
+                        offset: 0.55,
+                    },
+                    {
+                        transform:
+                            `translate(${endX - startX}px, ${endY - startY}px) `
+                            + "scale(.96) rotate(0deg)",
+                        opacity: 0.98,
+                    },
+                ],
+                {
+                    duration: direction === "draw" ? 330 : 280,
+                    easing: "cubic-bezier(.22,.78,.24,1)",
+                    fill: "forwards",
+                }
+            );
+
+            try {
+                await animation.finished;
+            } catch (_) {
+                // Navigation or a rerender may cancel a cosmetic animation.
+            }
+
+            ghost.remove();
+        }
+
+
         async function drawCard() {
             if (!currentGameId) {
                 showMessage(
@@ -3274,6 +3397,13 @@ let currentGameId = null;
                         `${data.drawn_card.month}월 `
                         + "카드를 뽑았습니다."
                     );
+
+                    await animateCardFlight({
+                        card: data.drawn_card,
+                        fromElement: drawDeck,
+                        toElement: myHandElement,
+                        direction: "draw",
+                    });
                 } else {
                     showMessage(
                         "덱이 소진되어 "
@@ -3293,7 +3423,8 @@ let currentGameId = null;
 
 
         async function discardCard(
-            cardId
+            cardId,
+            sourceElement = null
         ) {
             if (!currentGameId) {
                 return;
@@ -3339,6 +3470,13 @@ let currentGameId = null;
                     `${data.discarded_card.month}월 `
                     + "카드를 버렸습니다."
                 );
+
+                await animateCardFlight({
+                    card: data.discarded_card,
+                    fromElement: sourceElement,
+                    toElement: discardPileElement,
+                    direction: "discard",
+                });
 
                 await refreshAfterAction();
 
