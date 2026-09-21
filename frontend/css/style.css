@@ -3754,3 +3754,20 @@ body.game-mode .game-only-refresh {
         overflow-y: auto;
     }
 }
+
+
+/* Gameplay v19.1: move beginner guide to the upper-left open table area */
+@media (max-width: 720px) and (orientation: portrait) {
+    .tutorial-guide {
+        left: 8px;
+        top: 34px;
+        bottom: auto;
+        width: min(282px, calc(100vw - 78px));
+        max-height: 118px;
+        z-index: 88;
+    }
+
+    .tutorial-guide p {
+        max-height: 72px;
+    }
+}
