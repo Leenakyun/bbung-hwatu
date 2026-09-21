@@ -121,6 +121,16 @@ let currentGameId = null;
                 "aiDifficultySelect"
             );
 
+        const beginnerTutorialOption =
+            document.getElementById(
+                "beginnerTutorialOption"
+            );
+
+        const beginnerTutorialToggle =
+            document.getElementById(
+                "beginnerTutorialToggle"
+            );
+
         const onlineNickname =
             document.getElementById(
                 "onlineNickname"
@@ -381,6 +391,10 @@ let currentGameId = null;
         const declarationStatusBadge = document.getElementById("declarationStatusBadge");
         const lobbyBgm = document.getElementById("lobbyBgm");
         const gameBgm = document.getElementById("gameBgm");
+        const tutorialGuide = document.getElementById("tutorialGuide");
+        const tutorialGuideTitle = document.getElementById("tutorialGuideTitle");
+        const tutorialGuideText = document.getElementById("tutorialGuideText");
+        const tutorialGuideOffButton = document.getElementById("tutorialGuideOffButton");
 
         let musicEnabled = false;
         let soundEnabled = true;
@@ -388,6 +402,9 @@ let currentGameId = null;
         let lastResultSoundKey = null;
         let latestRenderedGame = null;
         let latestHumanPlayer = null;
+        let currentAiDifficulty = null;
+        let beginnerTutorialEnabled = false;
+        let tutorialFocusElement = null;
 
         const soundEffects = {
             draw: new Audio("/assets/sfx/draw.wav"),
@@ -508,6 +525,10 @@ let currentGameId = null;
             document.body.classList.toggle("game-mode", isGame);
             document.body.classList.toggle("lobby-mode", isLobby || isAuth);
             document.body.classList.toggle("auth-mode", isAuth);
+
+            if (!isGame) {
+                hideTutorialGuide();
+            }
 
             if (musicEnabled) {
                 const active = isGame ? gameBgm : lobbyBgm;
@@ -1680,6 +1701,13 @@ let currentGameId = null;
 
         async function createGame() {
             try {
+                currentAiDifficulty =
+                    aiDifficultySelect.value;
+
+                beginnerTutorialEnabled =
+                    currentAiDifficulty === "BEGINNER"
+                    && Boolean(beginnerTutorialToggle?.checked);
+
                 const response =
                     await apiFetch(
                         "/api/games",
@@ -1826,6 +1854,187 @@ let currentGameId = null;
         }
 
 
+        function syncBeginnerTutorialOption() {
+            if (!beginnerTutorialOption || !beginnerTutorialToggle) {
+                return;
+            }
+
+            const isBeginner =
+                aiDifficultySelect.value === "BEGINNER";
+
+            beginnerTutorialOption.hidden = !isBeginner;
+            beginnerTutorialToggle.disabled = !isBeginner;
+        }
+
+
+        function clearTutorialFocus() {
+            if (tutorialFocusElement) {
+                tutorialFocusElement.classList.remove("tutorial-focus");
+                tutorialFocusElement = null;
+            }
+        }
+
+
+        function setTutorialFocus(element) {
+            clearTutorialFocus();
+
+            if (!element) {
+                return;
+            }
+
+            element.classList.add("tutorial-focus");
+            tutorialFocusElement = element;
+        }
+
+
+        function hideTutorialGuide() {
+            clearTutorialFocus();
+
+            if (tutorialGuide) {
+                tutorialGuide.hidden = true;
+            }
+        }
+
+
+        function showTutorialGuide(title, text, focusElement = null) {
+            if (
+                !tutorialGuide
+                || !beginnerTutorialEnabled
+                || currentGameMode !== "SOLO_AI"
+                || currentAiDifficulty !== "BEGINNER"
+            ) {
+                hideTutorialGuide();
+                return;
+            }
+
+            tutorialGuideTitle.textContent = title;
+            tutorialGuideText.textContent = text;
+            tutorialGuide.hidden = false;
+            setTutorialFocus(focusElement);
+        }
+
+
+        function renderBeginnerTutorial(game, humanPlayer) {
+            if (
+                !beginnerTutorialEnabled
+                || currentGameMode !== "SOLO_AI"
+                || currentAiDifficulty !== "BEGINNER"
+                || !game
+                || !humanPlayer
+            ) {
+                hideTutorialGuide();
+                return;
+            }
+
+            if (game.status === "DEALER_SELECTION") {
+                const mode =
+                    game.dealer_selection_mode === "NIGHT"
+                    ? "밤"
+                    : "낮";
+
+                const rule =
+                    mode === "밤"
+                    ? "가장 낮은 월을 뽑은 사람이 선입니다."
+                    : "가장 높은 월을 뽑은 사람이 선입니다.";
+
+                showTutorialGuide(
+                    "먼저 선을 정해요",
+                    `현재는 ${mode} 규칙입니다. ${rule} 선 정하기 카드를 직접 뽑아보세요.`,
+                    dealerDrawButton
+                );
+                return;
+            }
+
+            if (game.status === "ROUND_END") {
+                showTutorialGuide(
+                    "이번 판이 끝났어요",
+                    "이번 판 점수를 확인한 뒤 다음 라운드를 눌러 계속 진행하세요.",
+                    nextRoundButton
+                );
+                return;
+            }
+
+            if (game.status === "GAME_END") {
+                showTutorialGuide(
+                    "게임 종료",
+                    "모든 라운드가 끝났습니다. 총점이 가장 낮은 플레이어가 승리합니다."
+                );
+                return;
+            }
+
+            if (game.status !== "PLAYING") {
+                showTutorialGuide(
+                    "게임 준비 중",
+                    "게임 상태가 바뀌면 다음 행동을 알려드릴게요."
+                );
+                return;
+            }
+
+            const isMyTurn =
+                game.current_turn_player_id === humanPlayer.player_id;
+
+            if (!isMyTurn) {
+                showTutorialGuide(
+                    "상대 차례예요",
+                    "상대가 어떤 월을 버리는지 봐두세요. 같은 월 2장이 있으면 뻥 기회가 생길 수 있습니다."
+                );
+                return;
+            }
+
+            if (game.turn_phase === "DRAW") {
+                showTutorialGuide(
+                    "카드를 한 장 뽑아보세요",
+                    "가운데 카드 뒷면 덱을 누르면 손패에 카드 1장이 들어옵니다.",
+                    drawDeck
+                );
+                return;
+            }
+
+            if (game.turn_phase === "DISCARD") {
+                const stopOptions =
+                    getAvailableStopOptions(humanPlayer.hand);
+
+                if (stopOptions.length > 0) {
+                    showTutorialGuide(
+                        "STOP이 가능해요",
+                        "현재 손패로 STOP 조건을 만족했습니다. STOP 버튼을 눌러 카드 조합과 예상 점수를 확인해보세요.",
+                        stopCallButton
+                    );
+                    return;
+                }
+
+                showTutorialGuide(
+                    "카드 한 장을 버리세요",
+                    "손패에서 버릴 카드 1장을 누르세요. 손패는 월 숫자가 작은 순서대로 정렬되어 있습니다.",
+                    myHandElement
+                );
+                return;
+            }
+
+            if (game.turn_phase === "REACTION") {
+                if (bbungPanel && bbungPanel.style.display !== "none") {
+                    showTutorialGuide(
+                        "뻥 기회가 왔어요",
+                        "상대가 버린 월과 같은 카드 2장이 있으면 뻥을 선언할 수 있습니다.",
+                        bbungPanel
+                    );
+                    return;
+                }
+
+                showTutorialGuide(
+                    "반응을 기다리는 중",
+                    "뻥이나 다른 선언 기회가 있는지 확인하는 단계입니다."
+                );
+                return;
+            }
+
+            showTutorialGuide(
+                "진행 중",
+                "현재 상태에 맞는 버튼이 나타나면 눌러 진행하세요."
+            );
+        }
+
+
         function renderGame(game) {
             setUiMode("game");
 
@@ -1948,6 +2157,11 @@ let currentGameId = null;
             );
 
             renderGeneralBagaji(
+                game,
+                humanPlayer
+            );
+
+            renderBeginnerTutorial(
                 game,
                 humanPlayer
             );
@@ -2584,9 +2798,36 @@ let currentGameId = null;
                 return;
             }
 
+            const sortedHand =
+                [...player.hand].sort(
+                    (a, b) => {
+                        const monthDifference =
+                            Number(a.month) - Number(b.month);
+
+                        if (monthDifference !== 0) {
+                            return monthDifference;
+                        }
+
+                        const aCopy =
+                            Number(a.copy_index)
+                            || Number(
+                                String(a.card_id || "").split(/[-_]/)[1]
+                            )
+                            || 0;
+                        const bCopy =
+                            Number(b.copy_index)
+                            || Number(
+                                String(b.card_id || "").split(/[-_]/)[1]
+                            )
+                            || 0;
+
+                        return aCopy - bCopy;
+                    }
+                );
+
             for (
                 const card
-                of player.hand
+                of sortedHand
             ) {
                 const button =
                     document
@@ -4571,6 +4812,29 @@ let currentGameId = null;
                 "click",
                 createGame
             );
+
+        aiDifficultySelect
+            .addEventListener(
+                "change",
+                syncBeginnerTutorialOption
+            );
+
+        tutorialGuideOffButton
+            .addEventListener(
+                "click",
+                () => {
+                    beginnerTutorialEnabled = false;
+                    hideTutorialGuide();
+
+                    if (beginnerTutorialToggle) {
+                        beginnerTutorialToggle.checked = false;
+                    }
+
+                    showMessage("초보 게임 안내를 껐습니다.");
+                }
+            );
+
+        syncBeginnerTutorialOption();
 
         document
             .getElementById(
