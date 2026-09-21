@@ -195,11 +195,6 @@
                     </div>
 
                     <div class="reaction-dock">
-                        <section class="reaction-card compact-action-card" id="stopPanel" style="display:none;">
-                            <button id="stopCallButton" class="danger-button compact-game-action" type="button">STOP</button>
-                            <div id="stopButtons" class="reaction-options compact-stop-options" style="display:none;"></div>
-                        </section>
-
                         <section class="reaction-card bbung-card" id="bbungPanel" style="display:none;">
                             <span class="reaction-tag">BBUNG</span>
                             <div id="bbungMessage" class="reaction-title"></div>
@@ -219,6 +214,10 @@
                                 <h2>내 손패</h2>
                             </div>
                             <div class="my-hand-status-area">
+                                <section class="hand-stop-control compact-action-card" id="stopPanel" style="display:none;">
+                                    <button id="stopCallButton" class="danger-button compact-game-action hand-stop-button" type="button">STOP</button>
+                                    <div id="stopButtons" class="reaction-options compact-stop-options hand-stop-options" style="display:none;"></div>
+                                </section>
                                 <span id="declarationStatusBadge" class="player-declaration-badge" style="display:none;" aria-live="polite"></span>
                                 <span class="hand-tip">버릴 수 있을 때 패를 눌러 선택</span>
                             </div>
