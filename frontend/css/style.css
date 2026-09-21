@@ -2459,3 +2459,8 @@ body.game-mode main {
         height: 100dvh;
     }
 }
+
+/* v13.4: hidden must always win over view display rules. */
+[hidden] {
+    display: none !important;
+}
