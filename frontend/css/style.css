@@ -2464,3 +2464,363 @@ body.game-mode main {
 [hidden] {
     display: none !important;
 }
+
+/* =========================================================
+   Lobby v13.5: viewport-fit fixes
+   - Portrait lobby always keeps public rooms visible without page scrolling.
+   - Phone landscape uses the same game composition even on >900px-wide devices.
+   ========================================================= */
+
+/* Compact portrait lobby: keep AI / online / public-room sections inside one screen. */
+@media (max-width: 720px) and (orientation: portrait) {
+    .lobby-view {
+        padding: 6px 8px;
+    }
+
+    .main-lobby-shell {
+        height: 100%;
+        min-height: 0;
+        gap: 6px;
+        grid-template-rows: auto auto minmax(118px, 1fr);
+    }
+
+    .lobby-profile-bar {
+        min-height: 42px;
+        padding: 0 2px;
+        align-items: center;
+    }
+
+    .lobby-profile-bar .kicker {
+        display: none;
+    }
+
+    .lobby-profile-bar h1 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.05;
+    }
+
+    .lobby-profile-actions {
+        flex-wrap: nowrap;
+        gap: 4px;
+    }
+
+    .lobby-profile-actions .compact-button,
+    .lobby-profile-actions .text-button {
+        min-height: 34px;
+        padding: 0 9px;
+        font-size: 11px;
+    }
+
+    .lobby-action-grid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        min-height: 0;
+    }
+
+    .lobby-mode-card {
+        padding: 9px 10px;
+        border-radius: 14px;
+    }
+
+    .lobby-mode-card .section-heading {
+        margin-bottom: 7px;
+        align-items: center;
+    }
+
+    .lobby-mode-card .section-heading .kicker {
+        display: none;
+    }
+
+    .lobby-mode-card .section-heading h2 {
+        margin: 0;
+        font-size: 17px;
+        line-height: 1.1;
+    }
+
+    .lobby-mode-card .field-label {
+        margin-bottom: 3px;
+        font-size: 10px;
+    }
+
+    .lobby-mode-card input,
+    .lobby-mode-card select {
+        min-height: 36px;
+        height: 36px;
+        padding-inline: 10px;
+        font-size: 12px;
+    }
+
+    .lobby-mode-card .full-button {
+        min-height: 36px;
+        margin-top: 6px;
+        font-size: 12px;
+    }
+
+    .lobby-online-buttons {
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+        margin-top: 6px;
+    }
+
+    .lobby-online-buttons button {
+        min-height: 36px;
+        padding: 0 7px;
+        font-size: 11px;
+    }
+
+    .lobby-room-id-input {
+        margin-top: 5px;
+    }
+
+    .lobby-start-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 5px;
+        margin-top: 5px;
+    }
+
+    .room-time-rule {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 9px;
+    }
+
+    #startOnlineRoomButton {
+        min-height: 34px;
+        padding: 0 9px;
+        font-size: 11px;
+    }
+
+    .room-meta {
+        margin-top: 5px;
+        font-size: 9px;
+    }
+
+    .public-rooms-card {
+        min-height: 118px;
+        padding: 9px 10px;
+        border-radius: 14px;
+    }
+
+    .public-rooms-heading {
+        margin-bottom: 5px;
+        align-items: center;
+    }
+
+    .public-rooms-heading .kicker {
+        display: none;
+    }
+
+    .public-rooms-heading h2 {
+        margin: 0;
+        font-size: 17px;
+    }
+
+    #refreshPublicRoomsButton {
+        min-height: 32px;
+        padding: 0 8px;
+        font-size: 10px;
+    }
+
+    .public-rooms-list {
+        gap: 5px;
+    }
+
+    .public-room-row {
+        min-height: 44px;
+        padding: 5px 7px;
+        gap: 3px 7px;
+        border-radius: 10px;
+    }
+
+    .public-room-main strong { font-size: 11px; }
+    .public-room-main small,
+    .public-room-count,
+    .public-room-status { font-size: 9px; }
+    .public-room-join {
+        min-width: 58px;
+        min-height: 32px;
+        padding: 0 7px;
+        font-size: 10px;
+    }
+
+    .public-rooms-empty {
+        padding: 12px 8px;
+        font-size: 11px;
+    }
+}
+
+/* Short Android landscape can exceed 900 CSS px in width. Height is the reliable phone signal. */
+@media (orientation: landscape) and (max-height: 600px) {
+    body.game-mode .topbar {
+        display: flex;
+        height: 36px;
+        padding: 0 6px;
+    }
+
+    body.game-mode .brand-mark {
+        width: 27px;
+        height: 27px;
+        font-size: 11px;
+    }
+
+    body.game-mode .brand-copy strong {
+        font-size: 11px;
+    }
+
+    body.game-mode .rules-open-button,
+    body.game-mode .icon-button {
+        min-height: 28px;
+        height: 28px;
+        font-size: 9px;
+    }
+
+    body.game-mode main {
+        width: 100vw;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    .game-view {
+        width: 100vw;
+        height: 100dvh;
+        min-height: 0;
+        padding: 36px 0 0;
+        overflow: hidden;
+    }
+
+    .game-toolbar {
+        top: 36px;
+        height: 32px;
+        min-height: 32px;
+        padding: 2px 5px;
+    }
+
+    .game-status-strip .status-line {
+        padding: 3px 5px;
+        font-size: 8px;
+    }
+
+    .toolbar-left .compact-button {
+        width: 28px;
+        min-width: 28px;
+        min-height: 28px;
+    }
+
+    .game-layout,
+    .table-stage {
+        width: 100vw;
+        height: calc(100dvh - 68px);
+        min-height: 0;
+        margin: 0;
+    }
+
+    .table-stage {
+        border: 0;
+        border-radius: 0;
+        overflow: hidden;
+    }
+
+    .toolbar-actions {
+        height: calc(42px + env(safe-area-inset-bottom));
+        min-height: calc(42px + env(safe-area-inset-bottom));
+        padding: 3px 5px calc(3px + env(safe-area-inset-bottom));
+    }
+
+    .toolbar-actions > * {
+        min-height: 32px;
+        font-size: 9px;
+    }
+
+    .players-rail .player {
+        width: clamp(74px, 13vw, 94px);
+        min-height: 36px;
+        padding: 3px 5px;
+    }
+
+    .players-rail .player strong { font-size: 8px; }
+    .players-rail .player-score-row { font-size: 6px; }
+    .bbung-count { display: none; }
+
+    /* Keep exactly the portrait seat map: only shrink it vertically. */
+    .players-rail[data-opponents="2"] .player:nth-child(1) { left: 22%; top: 22%; }
+    .players-rail[data-opponents="2"] .player:nth-child(2) { left: 78%; top: 22%; }
+    .players-rail[data-opponents="3"] .player:nth-child(1) { left: 16%; top: 28%; }
+    .players-rail[data-opponents="3"] .player:nth-child(2) { left: 50%; top: 12%; }
+    .players-rail[data-opponents="3"] .player:nth-child(3) { left: 84%; top: 28%; }
+    .players-rail[data-opponents="4"] .player:nth-child(1) { left: 15%; top: 28%; }
+    .players-rail[data-opponents="4"] .player:nth-child(2) { left: 50%; top: 11%; }
+    .players-rail[data-opponents="4"] .player:nth-child(3) { left: 85%; top: 28%; }
+    .players-rail[data-opponents="4"] .player:nth-child(4) { left: 85%; top: 55%; }
+    .players-rail[data-opponents="5"] .player:nth-child(1) { left: 15%; top: 27%; }
+    .players-rail[data-opponents="5"] .player:nth-child(2) { left: 50%; top: 10%; }
+    .players-rail[data-opponents="5"] .player:nth-child(3) { left: 85%; top: 27%; }
+    .players-rail[data-opponents="5"] .player:nth-child(4) { left: 85%; top: 55%; }
+    .players-rail[data-opponents="5"] .player:nth-child(5) { left: 15%; top: 55%; }
+
+    .table-center {
+        left: 50%;
+        top: 42%;
+        width: min(46vw, 360px);
+        height: 33%;
+        min-height: 70px;
+        transform: translate(-50%, -50%);
+    }
+
+    .discard-pile {
+        max-height: 42px;
+    }
+
+    .discard-pile .card {
+        width: clamp(21px, 3.8vw, 30px);
+        height: auto;
+        aspect-ratio: 25 / 41;
+    }
+
+    .deck-button,
+    .deck-button.is-drawable {
+        width: clamp(27px, 4.5vw, 34px);
+    }
+
+    .deck-visual {
+        width: 32px;
+        height: 48px;
+    }
+
+    .deck-visual .deck-back {
+        width: 30px;
+    }
+
+    .hand-zone {
+        left: 34%;
+        right: 5px;
+        bottom: calc(44px + env(safe-area-inset-bottom));
+        padding: 4px 5px 5px;
+    }
+
+    .hand-header h2 { font-size: 9px; }
+    .my-hand {
+        min-height: 54px;
+        padding: 3px 2px 0 8px;
+    }
+
+    .my-hand .card {
+        width: clamp(34px, 6.3vw, 46px);
+        height: auto;
+        aspect-ratio: 25 / 41;
+        margin-left: -6px;
+    }
+
+    .reaction-dock,
+    .game-sidebar {
+        top: 72px;
+        bottom: calc(45px + env(safe-area-inset-bottom));
+    }
+
+    .dealer-selection-banner {
+        top: 72px;
+        max-height: calc(100dvh - 120px);
+    }
+}
