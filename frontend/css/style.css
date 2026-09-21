@@ -2824,3 +2824,65 @@ body.game-mode main {
         max-height: calc(100dvh - 120px);
     }
 }
+
+
+/* Portrait-only game notice for phones. The lobby remains usable in landscape. */
+.portrait-only-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(18, 12, 9, 0.96);
+    text-align: center;
+}
+
+.portrait-only-card {
+    display: flex;
+    width: min(88vw, 360px);
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 24px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 18px;
+    background: rgba(39, 27, 21, 0.96);
+}
+
+.portrait-phone-icon {
+    display: grid;
+    width: 52px;
+    height: 76px;
+    place-items: center;
+    border: 3px solid currentColor;
+    border-radius: 10px;
+    font-size: 0;
+    transform: rotate(90deg);
+    opacity: 0.95;
+}
+
+.portrait-phone-icon::after {
+    content: "";
+    width: 20px;
+    height: 3px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.portrait-only-card strong {
+    font-size: clamp(20px, 5vw, 28px);
+    line-height: 1.25;
+}
+
+.portrait-only-card span {
+    font-size: 13px;
+    opacity: 0.72;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+    body.game-mode .portrait-only-overlay {
+        display: flex;
+    }
+}
