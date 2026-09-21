@@ -35,6 +35,7 @@
                 <div class="sound-control-row">
                     <button id="musicToggle" class="icon-button" type="button" title="배경음악">♪</button>
                     <button id="soundToggle" class="icon-button" type="button" title="효과음">♬</button>
+                    <button id="settingsButton" class="icon-button" type="button" title="옵션" aria-label="옵션">⚙</button>
                 </div>
                 <button id="refreshButton" class="icon-text-button game-only-refresh" type="button">↻ 상태 갱신</button>
             </div>
@@ -379,6 +380,59 @@
                 <p>3~4인은 첫 덱이 끝나면 바로 정산합니다. 5~6인은 버림패를 섞어 2단계로 한 번 더 진행한 뒤 정산합니다.</p>
             </div>
             <button class="primary-button full-button" data-close-modal="rulesModal" type="button">확인</button>
+        </section>
+    </div>
+
+    <div id="settingsModal" class="modal-backdrop" hidden>
+        <section class="modal-card settings-modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+            <button class="modal-close" data-close-modal="settingsModal" type="button" aria-label="닫기">×</button>
+            <span class="kicker">OPTIONS</span>
+            <h2 id="settingsTitle">게임 옵션</h2>
+
+            <div class="settings-list">
+                <label class="volume-setting" for="bgmVolume">
+                    <span>
+                        <b>배경음</b>
+                        <small>BGM은 기본 OFF입니다.</small>
+                    </span>
+                    <div class="volume-control">
+                        <input id="bgmVolume" type="range" min="0" max="100" step="1" value="22">
+                        <output id="bgmVolumeValue" for="bgmVolume">22%</output>
+                    </div>
+                </label>
+
+                <label class="volume-setting" for="sfxVolume">
+                    <span>
+                        <b>효과음</b>
+                        <small>카드 뽑기, 버리기, 뻥 등의 효과음입니다.</small>
+                    </span>
+                    <div class="volume-control">
+                        <input id="sfxVolume" type="range" min="0" max="100" step="1" value="80">
+                        <output id="sfxVolumeValue" for="sfxVolume">80%</output>
+                    </div>
+                </label>
+
+                <label class="volume-setting" for="voiceVolume">
+                    <span>
+                        <b>캐릭터 음성</b>
+                        <small>현재 음성 및 향후 캐릭터 전용 음성에 적용됩니다.</small>
+                    </span>
+                    <div class="volume-control">
+                        <input id="voiceVolume" type="range" min="0" max="100" step="1" value="80">
+                        <output id="voiceVolumeValue" for="voiceVolume">80%</output>
+                    </div>
+                </label>
+
+                <label class="setting-switch-row" for="vibrationToggle">
+                    <span>
+                        <b>진동</b>
+                        <small>지원되는 기기에서 뻥 같은 강조 상황에 사용합니다.</small>
+                    </span>
+                    <input id="vibrationToggle" type="checkbox" checked>
+                </label>
+            </div>
+
+            <button id="saveSettingsButton" class="primary-button full-button" type="button">설정 저장</button>
         </section>
     </div>
 

@@ -393,6 +393,16 @@ let currentGameId = null;
         const backToLobbyButton = document.getElementById("backToLobbyButton");
         const musicToggle = document.getElementById("musicToggle");
         const soundToggle = document.getElementById("soundToggle");
+        const settingsButton = document.getElementById("settingsButton");
+        const settingsModal = document.getElementById("settingsModal");
+        const bgmVolumeInput = document.getElementById("bgmVolume");
+        const sfxVolumeInput = document.getElementById("sfxVolume");
+        const voiceVolumeInput = document.getElementById("voiceVolume");
+        const bgmVolumeValue = document.getElementById("bgmVolumeValue");
+        const sfxVolumeValue = document.getElementById("sfxVolumeValue");
+        const voiceVolumeValue = document.getElementById("voiceVolumeValue");
+        const vibrationToggle = document.getElementById("vibrationToggle");
+        const saveSettingsButton = document.getElementById("saveSettingsButton");
         const declarationStatusBadge = document.getElementById("declarationStatusBadge");
         const lobbyBgm = document.getElementById("lobbyBgm");
         const gameBgm = document.getElementById("gameBgm");
@@ -401,8 +411,14 @@ let currentGameId = null;
         const tutorialGuideText = document.getElementById("tutorialGuideText");
         const tutorialGuideOffButton = document.getElementById("tutorialGuideOffButton");
 
+        const AUDIO_SETTINGS_KEY = "bbung_hwatu_audio_settings_v1";
+
         let musicEnabled = false;
         let soundEnabled = true;
+        let bgmVolume = 0.22;
+        let sfxVolume = 0.80;
+        let voiceVolume = 0.80;
+        let vibrationEnabled = true;
         let toastTimer = null;
         let lastResultSoundKey = null;
         let latestRenderedGame = null;
@@ -472,6 +488,139 @@ let currentGameId = null;
         }
 
 
+        function clamp01(value, fallback = 0) {
+            const number = Number(value);
+
+            if (!Number.isFinite(number)) {
+                return fallback;
+            }
+
+            return Math.min(1, Math.max(0, number));
+        }
+
+
+        function loadAudioSettings() {
+            try {
+                const raw = localStorage.getItem(AUDIO_SETTINGS_KEY);
+
+                if (raw) {
+                    const saved = JSON.parse(raw);
+
+                    musicEnabled = Boolean(saved.musicEnabled);
+                    soundEnabled =
+                        saved.soundEnabled === undefined
+                            ? true
+                            : Boolean(saved.soundEnabled);
+                    bgmVolume = clamp01(saved.bgmVolume, 0.22);
+                    sfxVolume = clamp01(saved.sfxVolume, 0.80);
+                    voiceVolume = clamp01(saved.voiceVolume, 0.80);
+                    vibrationEnabled =
+                        saved.vibrationEnabled === undefined
+                            ? true
+                            : Boolean(saved.vibrationEnabled);
+                }
+            } catch (_error) {
+                musicEnabled = false;
+                soundEnabled = true;
+                bgmVolume = 0.22;
+                sfxVolume = 0.80;
+                voiceVolume = 0.80;
+                vibrationEnabled = true;
+            }
+        }
+
+
+        function saveAudioSettings() {
+            try {
+                localStorage.setItem(
+                    AUDIO_SETTINGS_KEY,
+                    JSON.stringify({
+                        musicEnabled,
+                        soundEnabled,
+                        bgmVolume,
+                        sfxVolume,
+                        voiceVolume,
+                        vibrationEnabled,
+                    })
+                );
+            } catch (_error) {
+                // 저장 실패는 게임 진행에 영향 없음.
+            }
+        }
+
+
+        function applyAudioSettingsToUi() {
+            musicToggle.classList.toggle("is-off", !musicEnabled);
+            soundToggle.classList.toggle("is-off", !soundEnabled);
+
+            bgmVolumeInput.value = String(Math.round(bgmVolume * 100));
+            sfxVolumeInput.value = String(Math.round(sfxVolume * 100));
+            voiceVolumeInput.value = String(Math.round(voiceVolume * 100));
+            vibrationToggle.checked = vibrationEnabled;
+
+            bgmVolumeValue.textContent = `${bgmVolumeInput.value}%`;
+            sfxVolumeValue.textContent = `${sfxVolumeInput.value}%`;
+            voiceVolumeValue.textContent = `${voiceVolumeInput.value}%`;
+
+            lobbyBgm.volume = bgmVolume;
+            gameBgm.volume = bgmVolume;
+
+            for (const audio of Object.values(soundEffects)) {
+                audio.volume = sfxVolume;
+            }
+        }
+
+
+        function readSettingsControls() {
+            bgmVolume =
+                clamp01(
+                    Number(bgmVolumeInput.value) / 100,
+                    bgmVolume
+                );
+            sfxVolume =
+                clamp01(
+                    Number(sfxVolumeInput.value) / 100,
+                    sfxVolume
+                );
+            voiceVolume =
+                clamp01(
+                    Number(voiceVolumeInput.value) / 100,
+                    voiceVolume
+                );
+            vibrationEnabled =
+                Boolean(vibrationToggle.checked);
+
+            applyAudioSettingsToUi();
+        }
+
+
+        function openSettingsModal() {
+            applyAudioSettingsToUi();
+            settingsModal.hidden = false;
+        }
+
+
+        function closeSettingsModal() {
+            settingsModal.hidden = true;
+        }
+
+
+        function vibratePattern(pattern) {
+            if (
+                !vibrationEnabled
+                || !navigator.vibrate
+            ) {
+                return;
+            }
+
+            try {
+                navigator.vibrate(pattern);
+            } catch (_error) {
+                // 미지원/차단 기기에서는 무시.
+            }
+        }
+
+
         function playEffect(name) {
             if (!soundEnabled) {
                 return;
@@ -484,6 +633,7 @@ let currentGameId = null;
 
             try {
                 audio.currentTime = 0;
+                audio.volume = sfxVolume;
                 audio.play().catch(() => {});
             } catch (_error) {
                 // 오디오 재생 실패는 게임 진행에 영향 없음.
@@ -500,7 +650,7 @@ let currentGameId = null;
             utterance.lang = "ko-KR";
             utterance.rate = 0.72;
             utterance.pitch = 0.78;
-            utterance.volume = 1;
+            utterance.volume = voiceVolume;
 
             const voices = window.speechSynthesis.getVoices();
             const koreanVoices = voices.filter(
@@ -541,7 +691,7 @@ let currentGameId = null;
                 const inactive = isGame ? lobbyBgm : gameBgm;
 
                 inactive.pause();
-                active.volume = 0.22;
+                active.volume = bgmVolume;
                 active.play().catch(() => {});
             }
         }
@@ -5031,6 +5181,7 @@ let currentGameId = null;
                 }
 
                 playEffect("bbung");
+                vibratePattern([80, 50, 120]);
 
                 if (
                     data.turn_phase
@@ -5132,7 +5283,8 @@ let currentGameId = null;
             "click",
             () => {
                 musicEnabled = !musicEnabled;
-                musicToggle.classList.toggle("is-off", !musicEnabled);
+                applyAudioSettingsToUi();
+                saveAudioSettings();
 
                 if (!musicEnabled) {
                     lobbyBgm.pause();
@@ -5152,9 +5304,85 @@ let currentGameId = null;
             "click",
             () => {
                 soundEnabled = !soundEnabled;
-                soundToggle.classList.toggle("is-off", !soundEnabled);
+                applyAudioSettingsToUi();
+                saveAudioSettings();
             }
         );
+
+        settingsButton.addEventListener(
+            "click",
+            openSettingsModal
+        );
+
+        bgmVolumeInput.addEventListener(
+            "input",
+            () => {
+                bgmVolumeValue.textContent =
+                    `${bgmVolumeInput.value}%`;
+
+                bgmVolume =
+                    clamp01(
+                        Number(bgmVolumeInput.value) / 100,
+                        bgmVolume
+                    );
+
+                lobbyBgm.volume = bgmVolume;
+                gameBgm.volume = bgmVolume;
+            }
+        );
+
+        sfxVolumeInput.addEventListener(
+            "input",
+            () => {
+                sfxVolumeValue.textContent =
+                    `${sfxVolumeInput.value}%`;
+
+                sfxVolume =
+                    clamp01(
+                        Number(sfxVolumeInput.value) / 100,
+                        sfxVolume
+                    );
+
+                for (const audio of Object.values(soundEffects)) {
+                    audio.volume = sfxVolume;
+                }
+            }
+        );
+
+        voiceVolumeInput.addEventListener(
+            "input",
+            () => {
+                voiceVolumeValue.textContent =
+                    `${voiceVolumeInput.value}%`;
+
+                voiceVolume =
+                    clamp01(
+                        Number(voiceVolumeInput.value) / 100,
+                        voiceVolume
+                    );
+            }
+        );
+
+        vibrationToggle.addEventListener(
+            "change",
+            () => {
+                vibrationEnabled =
+                    Boolean(vibrationToggle.checked);
+            }
+        );
+
+        saveSettingsButton.addEventListener(
+            "click",
+            () => {
+                readSettingsControls();
+                saveAudioSettings();
+                closeSettingsModal();
+                showMessage("옵션을 저장했습니다.");
+            }
+        );
+
+        loadAudioSettings();
+        applyAudioSettingsToUi();
 
         // 인증 검증이 끝나기 전에는 로그인 화면을 기본으로 유지한다.
         // refreshAuth()가 유효한 세션을 확인하면 로비로 전환한다.

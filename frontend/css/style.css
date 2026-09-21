@@ -3664,3 +3664,93 @@ body.game-mode .game-only-refresh {
         padding-right: 2px;
     }
 }
+
+
+/* Gameplay v19: persistent audio / vibration settings */
+.settings-modal-card {
+    width: min(420px, calc(100vw - 24px));
+}
+
+.settings-list {
+    display: grid;
+    gap: 9px;
+    margin-top: 12px;
+}
+
+.volume-setting,
+.setting-switch-row {
+    display: grid;
+    gap: 7px;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    background: rgba(255,255,255,.035);
+}
+
+.volume-setting > span,
+.setting-switch-row > span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.volume-setting b,
+.setting-switch-row b {
+    color: #eadfd4;
+    font-size: 11px;
+}
+
+.volume-setting small,
+.setting-switch-row small {
+    color: #93867d;
+    font-size: 8px;
+    line-height: 1.35;
+}
+
+.volume-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 42px;
+    align-items: center;
+    gap: 8px;
+}
+
+.volume-control input[type="range"] {
+    width: 100%;
+    min-width: 0;
+}
+
+.volume-control output {
+    color: #f0c675;
+    font-size: 9px;
+    font-weight: 900;
+    text-align: right;
+}
+
+.setting-switch-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.setting-switch-row input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+}
+
+@media (max-width: 720px) and (orientation: portrait) {
+    body.game-mode .sound-control-row {
+        gap: 2px;
+    }
+
+    body.game-mode #settingsButton {
+        width: 27px;
+        height: 27px;
+        min-height: 27px;
+        font-size: 11px;
+    }
+
+    .settings-modal-card {
+        width: min(370px, calc(100vw - 18px));
+        max-height: 88dvh;
+        overflow-y: auto;
+    }
+}
