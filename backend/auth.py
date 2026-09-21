@@ -124,6 +124,12 @@ class AuthStore:
                 now_dt + timedelta(days=self.session_days)
             ).isoformat()
 
+            # One active login per account. A successful login on a new
+            # device invalidates any older session tokens for this user.
+            connection.execute(
+                "DELETE FROM auth_sessions WHERE user_id = ?",
+                (row["user_id"],),
+            )
             connection.execute(
                 """
                 INSERT INTO auth_sessions (

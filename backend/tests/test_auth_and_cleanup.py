@@ -143,6 +143,42 @@ class AuthAndCleanupTests(unittest.TestCase):
         self.assertTrue(payload["token"])
         self.assertEqual(payload["user"]["username"], "returning")
 
+    def test_new_login_invalidates_previous_device_session(self):
+        first = self._register_and_login(
+            username="single-session",
+            nickname="단일접속",
+        )
+        first_token = first["token"]
+
+        second_client = app_module.app.test_client()
+        second_login = second_client.post(
+            "/api/auth/login",
+            json={
+                "username": "single-session",
+                "password": "secret1",
+            },
+        )
+        self.assertEqual(second_login.status_code, 200)
+        second_token = second_login.get_json()["token"]
+        self.assertNotEqual(first_token, second_token)
+
+        first_me = self.client.get(
+            "/api/auth/me",
+            headers={
+                "Authorization": f"Bearer {first_token}",
+            },
+        )
+        self.assertEqual(first_me.status_code, 401)
+
+        second_me = second_client.get(
+            "/api/auth/me",
+            headers={
+                "Authorization": f"Bearer {second_token}",
+            },
+        )
+        self.assertEqual(second_me.status_code, 200)
+
+
     def test_password_is_not_stored_as_plain_text(self):
         self._register_and_login()
 
