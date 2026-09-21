@@ -1858,6 +1858,55 @@ def draw_solo_dealer_selection_card(
     return jsonify(response_data)
 
 
+@app.get("/api/online/rooms")
+def list_public_online_rooms():
+    """메인 로비에 노출할 공개 온라인 방 목록."""
+    maybe_cleanup_stale_online_rooms()
+
+    rooms = []
+
+    for game in manager.get_games_by_mode(GameMode.ONLINE):
+        if game.is_private:
+            continue
+
+        state = game.state
+        player_count = len(state.players)
+        max_players = game.max_players or 0
+        owner_nickname = (
+            state.players[0].nickname
+            if state.players
+            else "방장"
+        )
+        is_waiting = state.status == GameStatus.WAITING
+        is_full = bool(max_players and player_count >= max_players)
+
+        rooms.append(
+            {
+                "game_id": game.game_id,
+                "owner_nickname": owner_nickname,
+                "player_count": player_count,
+                "max_players": max_players,
+                "status": state.status.value,
+                "round_number": state.round_number,
+                "can_join": is_waiting and not is_full,
+                "is_full": is_full,
+                "created_at": game.created_at.isoformat(),
+            }
+        )
+
+    rooms.sort(
+        key=lambda item: item["created_at"],
+        reverse=True,
+    )
+
+    return jsonify(
+        {
+            "ok": True,
+            "rooms": rooms,
+        }
+    )
+
+
 @app.post("/api/online/rooms")
 def create_online_room():
     data = request.get_json(

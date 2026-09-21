@@ -332,8 +332,13 @@ let currentGameId = null;
                 "bbungPassButton"
             );
 
+        const authView = document.getElementById("authView");
         const lobbyView = document.getElementById("lobbyView");
         const gameView = document.getElementById("gameView");
+        const lobbyWelcome = document.getElementById("lobbyWelcome");
+        const publicRoomsList = document.getElementById("publicRoomsList");
+        const publicRoomsEmpty = document.getElementById("publicRoomsEmpty");
+        const refreshPublicRoomsButton = document.getElementById("refreshPublicRoomsButton");
         const homeButton = document.getElementById("homeButton");
         const backToLobbyButton = document.getElementById("backToLobbyButton");
         const musicToggle = document.getElementById("musicToggle");
@@ -455,13 +460,17 @@ let currentGameId = null;
 
 
         function setUiMode(mode) {
+            const isAuth = mode === "auth";
+            const isLobby = mode === "lobby";
             const isGame = mode === "game";
 
-            lobbyView.hidden = isGame;
+            authView.hidden = !isAuth;
+            lobbyView.hidden = !isLobby;
             gameView.hidden = !isGame;
 
             document.body.classList.toggle("game-mode", isGame);
-            document.body.classList.toggle("lobby-mode", !isGame);
+            document.body.classList.toggle("lobby-mode", isLobby || isAuth);
+            document.body.classList.toggle("auth-mode", isAuth);
 
             if (musicEnabled) {
                 const active = isGame ? gameBgm : lobbyBgm;
@@ -537,6 +546,11 @@ let currentGameId = null;
                         currentAuthUser.nickname;
                 }
 
+                if (lobbyWelcome) {
+                    lobbyWelcome.textContent =
+                        `${currentAuthUser.nickname}님의 로비`;
+                }
+
                 return;
             }
 
@@ -549,6 +563,7 @@ let currentGameId = null;
             if (!authToken) {
                 currentAuthUser = null;
                 renderAuthStatus();
+                setUiMode("auth");
                 return;
             }
 
@@ -573,6 +588,7 @@ let currentGameId = null;
                     );
 
                     renderAuthStatus();
+                    setUiMode("auth");
                     return;
                 }
 
@@ -580,10 +596,13 @@ let currentGameId = null;
                     data.user;
 
                 renderAuthStatus();
+                setUiMode(authToken ? "lobby" : "auth");
+                await refreshPublicRooms();
 
             } catch (_error) {
                 currentAuthUser = null;
                 renderAuthStatus();
+                setUiMode("auth");
             }
         }
 
@@ -693,6 +712,15 @@ let currentGameId = null;
                 onlineNickname.value =
                     currentAuthUser.nickname;
 
+                setUiMode("lobby");
+                await refreshPublicRooms();
+
+                if (typeof invitedRoomId !== "undefined" && invitedRoomId) {
+                    onlineRoomId.value = invitedRoomId;
+                    joinRoomId.value = invitedRoomId;
+                    openModal(roomJoinModal);
+                }
+
                 showMessage(
                     `${currentAuthUser.nickname}`
                     + " 로그인 완료"
@@ -735,10 +763,113 @@ let currentGameId = null;
                     "없음";
 
                 renderAuthStatus();
+                setUiMode("auth");
 
                 showMessage(
                     "로그아웃했습니다."
                 );
+            }
+        }
+
+
+        function publicRoomStatusLabel(room) {
+            if (room.status === "WAITING") {
+                return room.is_full ? "꽉 참" : "대기 중";
+            }
+            if (room.status === "DEALER_SELECTION") {
+                return "선 정하는 중";
+            }
+            if (room.status === "PLAYING") {
+                return "게임 중";
+            }
+            if (room.status === "ROUND_END") {
+                return "라운드 정산 중";
+            }
+            if (room.status === "TIE_BREAK") {
+                return "순위 결정 중";
+            }
+            if (room.status === "GAME_END") {
+                return "게임 종료";
+            }
+            return room.status || "상태 확인 중";
+        }
+
+
+        function renderPublicRooms(rooms) {
+            if (!publicRoomsList || !publicRoomsEmpty) {
+                return;
+            }
+
+            publicRoomsList.replaceChildren();
+            const roomItems = Array.isArray(rooms) ? rooms : [];
+            publicRoomsEmpty.hidden = roomItems.length > 0;
+
+            roomItems.forEach(room => {
+                const row = document.createElement("div");
+                row.className = "public-room-row";
+
+                const main = document.createElement("div");
+                main.className = "public-room-main";
+                const title = document.createElement("strong");
+                title.textContent = room.game_id;
+                const owner = document.createElement("small");
+                owner.textContent = `방장 ${room.owner_nickname || "-"}`;
+                main.append(title, owner);
+
+                const count = document.createElement("span");
+                count.className = "public-room-count";
+                count.textContent = `${room.player_count}/${room.max_players}명`;
+
+                const status = document.createElement("span");
+                status.className = "public-room-status " + (room.can_join ? "waiting" : "playing");
+                status.textContent = publicRoomStatusLabel(room);
+
+                const join = document.createElement("button");
+                join.type = "button";
+                join.className = "ghost-button public-room-join";
+                join.textContent = room.can_join ? "입장" : "입장 불가";
+                join.disabled = !room.can_join;
+                join.addEventListener("click", () => {
+                    onlineRoomId.value = room.game_id;
+                    joinRoomId.value = room.game_id;
+                    roomPasswordJoin.value = "";
+                    openModal(roomJoinModal);
+                });
+
+                row.append(main, count, status, join);
+                publicRoomsList.append(row);
+            });
+        }
+
+
+        async function refreshPublicRooms() {
+            if (!authToken) {
+                renderPublicRooms([]);
+                return;
+            }
+
+            try {
+                if (refreshPublicRoomsButton) {
+                    refreshPublicRoomsButton.disabled = true;
+                }
+
+                const response = await apiFetch(
+                    "/api/online/rooms",
+                    { cache: "no-store" }
+                );
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || "공개방 목록 조회 실패");
+                }
+
+                renderPublicRooms(data.rooms);
+            } catch (_error) {
+                renderPublicRooms([]);
+            } finally {
+                if (refreshPublicRoomsButton) {
+                    refreshPublicRoomsButton.disabled = false;
+                }
             }
         }
 
@@ -1194,6 +1325,8 @@ let currentGameId = null;
                 openModal(
                     roomShareModal
                 );
+
+                await refreshPublicRooms();
 
                 showMessage(
                     `온라인 방 생성: `
@@ -3770,12 +3903,24 @@ let currentGameId = null;
 
         homeButton.addEventListener(
             "click",
-            () => setUiMode("lobby")
+            () => {
+                if (currentAuthUser) {
+                    setUiMode("lobby");
+                    refreshPublicRooms();
+                } else {
+                    setUiMode("auth");
+                }
+            }
         );
 
         backToLobbyButton.addEventListener(
             "click",
-            () => setUiMode("lobby")
+            () => {
+                setUiMode(currentAuthUser ? "lobby" : "auth");
+                if (currentAuthUser) {
+                    refreshPublicRooms();
+                }
+            }
         );
 
         musicToggle.addEventListener(
@@ -3790,7 +3935,11 @@ let currentGameId = null;
                     return;
                 }
 
-                setUiMode(gameView.hidden ? "lobby" : "game");
+                setUiMode(
+                    gameView.hidden
+                        ? (currentAuthUser ? "lobby" : "auth")
+                        : "game"
+                );
             }
         );
 
@@ -3823,6 +3972,18 @@ let currentGameId = null;
             );
 
         refreshAuth();
+
+        window.setInterval(
+            () => {
+                if (
+                    currentAuthUser
+                    && !lobbyView.hidden
+                ) {
+                    refreshPublicRooms();
+                }
+            },
+            5000
+        );
 
         const invitedRoomId =
             normalizeRoomId(
@@ -3910,6 +4071,24 @@ let currentGameId = null;
                 () => openModal(
                     rulesModal
                 )
+            );
+
+
+        document
+            .getElementById(
+                "rulesLobbyButton"
+            )
+            .addEventListener(
+                "click",
+                () => openModal(
+                    rulesModal
+                )
+            );
+
+        refreshPublicRoomsButton
+            .addEventListener(
+                "click",
+                refreshPublicRooms
             );
 
         document

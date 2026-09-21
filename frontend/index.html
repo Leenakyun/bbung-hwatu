@@ -29,86 +29,102 @@
     </header>
 
     <main>
-        <section id="lobbyView" class="lobby-view">
-            <div class="lobby-hero">
-                <div class="hero-copy">
+        <section id="authView" class="auth-view">
+            <div class="auth-shell">
+                <div class="auth-brand-block">
                     <span class="eyebrow">우리 집 룰 그대로</span>
-                    <h1>패는 가볍게,<br><em>한 방은 세게.</em></h1>
+                    <h1>뻥 화투</h1>
+                    <p>로그인하고 온라인 대전과 AI 연습을 시작하세요.</p>
                 </div>
-                <div class="hero-card-fan" aria-hidden="true">
-                    <img src="/assets/cards/1_1.png" alt="">
-                    <img src="/assets/cards/3_1.png" alt="">
-                    <img src="/assets/cards/8_1.png" alt="">
-                </div>
-            </div>
 
-            <div class="lobby-grid">
-                <section class="glass-card login-card">
+                <section class="glass-card auth-login-card">
                     <div class="section-heading">
                         <div>
                             <span class="kicker">ACCOUNT</span>
                             <h2>로그인</h2>
                         </div>
-                        <span class="soft-label">온라인 대전 필수</span>
                     </div>
                     <div class="field-stack">
                         <input id="authUsername" type="text" placeholder="아이디 (3자 이상)" maxlength="30" autocomplete="username">
                         <input id="authPassword" type="password" placeholder="비밀번호 (6자 이상)" maxlength="100" autocomplete="current-password">
                         <input id="authNickname" type="text" placeholder="가입용 닉네임" maxlength="20">
                     </div>
-                    <div class="button-row">
+                    <div class="button-row auth-actions">
                         <button id="loginButton" class="primary-button" type="button">로그인</button>
                         <button id="registerButton" class="ghost-button" type="button">회원가입</button>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <section id="lobbyView" class="lobby-view" hidden>
+            <div class="main-lobby-shell">
+                <section class="lobby-profile-bar">
+                    <div>
+                        <span class="kicker">MY LOBBY</span>
+                        <h1 id="lobbyWelcome">뻥 화투 로비</h1>
+                    </div>
+                    <div class="lobby-profile-actions">
+                        <button id="rulesLobbyButton" class="ghost-button compact-button" type="button">룰 설명서</button>
                         <button id="logoutButton" class="text-button" type="button">로그아웃</button>
                     </div>
                 </section>
 
-                <section class="glass-card play-card solo-card">
-                    <div class="section-heading">
-                        <div>
-                            <span class="kicker">SOLO</span>
-                            <h2>AI 대전</h2>
+                <div class="lobby-action-grid">
+                    <section class="glass-card lobby-mode-card">
+                        <div class="section-heading">
+                            <div>
+                                <span class="kicker">SOLO</span>
+                                <h2>AI 연습</h2>
+                            </div>
                         </div>
-                        <div class="chip-stack" aria-hidden="true">
-                            <img src="/assets/ui/chips/1000.png" alt="">
-                            <img src="/assets/ui/chips/10,000.png" alt="">
-                        </div>
-                    </div>
-                    <p class="card-description">규칙 확인이나 손풀기는 AI전으로. 난이도를 고르고 바로 시작.</p>
-                    <label class="field-label" for="aiDifficultySelect">AI 난이도</label>
-                    <select id="aiDifficultySelect">
-                        <option value="BEGINNER">초보</option>
-                        <option value="INTERMEDIATE">중수</option>
-                        <option value="ADVANCED">고수</option>
-                        <option value="TAZZA">타짜</option>
-                    </select>
-                    <button id="createGameButton" class="primary-button full-button">AI 대전 시작</button>
-                </section>
+                        <label class="field-label" for="aiDifficultySelect">AI 난이도</label>
+                        <select id="aiDifficultySelect">
+                            <option value="BEGINNER">초보</option>
+                            <option value="INTERMEDIATE">중수</option>
+                            <option value="ADVANCED">고수</option>
+                            <option value="TAZZA">타짜</option>
+                        </select>
+                        <button id="createGameButton" class="primary-button full-button">AI 대전 시작</button>
+                    </section>
 
-                <section class="glass-card play-card online-card">
-                    <div class="section-heading">
-                        <div>
-                            <span class="kicker">ONLINE</span>
-                            <h2>온라인 대전</h2>
+                    <section class="glass-card lobby-mode-card">
+                        <div class="section-heading">
+                            <div>
+                                <span class="kicker">ONLINE</span>
+                                <h2>온라인 대전</h2>
+                            </div>
+                            <span id="realtimeStatus" class="connection-pill">연결 안 됨</span>
                         </div>
-                        <span id="realtimeStatus" class="connection-pill">연결 안 됨</span>
-                    </div>
-                    <div class="field-stack">
-                        <div>
-                            <label class="field-label" for="onlineNickname">닉네임</label>
-                            <input id="onlineNickname" type="text" value="플레이어" maxlength="20">
+                        <div class="field-stack">
+                            <div>
+                                <label class="field-label" for="onlineNickname">닉네임</label>
+                                <input id="onlineNickname" type="text" value="플레이어" maxlength="20">
+                            </div>
                         </div>
+                        <div class="lobby-online-buttons">
+                            <button id="createOnlineRoomButton" class="primary-button" type="button">방 만들기</button>
+                            <button id="joinOnlineRoomButton" class="ghost-button" type="button">초대 링크 / 방 ID 참가</button>
+                        </div>
+                        <input id="onlineRoomId" type="text" placeholder="방 ID 또는 초대 링크" class="lobby-room-id-input">
+                        <div class="dealer-row lobby-start-row">
+                            <div class="room-time-rule">밤일낮짱은 한국시간 기준 자동 설정</div>
+                            <button id="startOnlineRoomButton" class="accent-button" type="button">게임 시작</button>
+                        </div>
+                        <div class="room-meta">내 플레이어 ID <span id="onlinePlayerId">없음</span></div>
+                    </section>
+                </div>
+
+                <section class="glass-card public-rooms-card">
+                    <div class="section-heading public-rooms-heading">
+                        <div>
+                            <span class="kicker">PUBLIC ROOMS</span>
+                            <h2>공개방</h2>
+                        </div>
+                        <button id="refreshPublicRoomsButton" class="ghost-button compact-button" type="button">↻ 새로고침</button>
                     </div>
-                    <button id="createOnlineRoomButton" class="primary-button full-button" type="button">방 만들기</button>
-                    <div class="join-row">
-                        <input id="onlineRoomId" type="text" placeholder="방 ID 또는 초대 링크">
-                        <button id="joinOnlineRoomButton" class="ghost-button" type="button">참가</button>
-                    </div>
-                    <div class="dealer-row">
-                        <div class="room-time-rule">밤일낮짱은 한국시간 기준으로 자동 설정됩니다.</div>
-                        <button id="startOnlineRoomButton" class="accent-button" type="button">게임 시작</button>
-                    </div>
-                    <div class="room-meta">내 플레이어 ID <span id="onlinePlayerId">없음</span></div>
+                    <div id="publicRoomsList" class="public-rooms-list" aria-live="polite"></div>
+                    <div id="publicRoomsEmpty" class="public-rooms-empty">참가 가능한 공개방이 없습니다.</div>
                 </section>
             </div>
         </section>

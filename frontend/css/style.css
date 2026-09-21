@@ -2208,3 +2208,110 @@ body.modal-open {
         max-height: calc(100dvh - 126px);
     }
 }
+
+/* =========================================================
+   Lobby v13: auth page + game lobby + public room browser
+   ========================================================= */
+.auth-view {
+    min-height: calc(100vh - 74px);
+    padding: 28px 18px 42px;
+    display: grid;
+    place-items: center;
+    background:
+        linear-gradient(180deg, rgba(13,9,8,.36), rgba(13,9,8,.88)),
+        url('/assets/bg/lobby.png') center / cover no-repeat;
+}
+.auth-shell {
+    width: min(920px, 100%);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+    align-items: center;
+    gap: 30px;
+}
+.auth-brand-block h1 {
+    margin: 8px 0 10px;
+    font-size: clamp(52px, 8vw, 88px);
+    line-height: .95;
+    letter-spacing: -.07em;
+}
+.auth-brand-block p { color: var(--muted); margin: 0; }
+.auth-login-card { min-height: 0; }
+.auth-actions > button { flex: 1; }
+
+.main-lobby-shell {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    display: grid;
+    gap: 16px;
+}
+.lobby-profile-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 2px 4px;
+}
+.lobby-profile-bar h1 { margin: 4px 0 0; font-size: clamp(28px, 5vw, 42px); }
+.lobby-profile-actions { display: flex; align-items: center; gap: 8px; }
+.lobby-action-grid {
+    display: grid;
+    grid-template-columns: .85fr 1.15fr;
+    gap: 16px;
+}
+.lobby-mode-card { min-height: 0; }
+.lobby-online-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.lobby-room-id-input { margin-top: 8px; }
+.lobby-start-row { align-items: center; }
+
+.public-rooms-card { min-height: 0; }
+.public-rooms-heading { margin-bottom: 10px; }
+.public-rooms-list { display: grid; gap: 8px; }
+.public-room-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) auto auto auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 62px;
+    padding: 10px 12px;
+    border-radius: 13px;
+    border: 1px solid rgba(255,236,210,.10);
+    background: rgba(255,255,255,.035);
+}
+.public-room-main { min-width: 0; }
+.public-room-main strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.public-room-main small { color: var(--muted); }
+.public-room-count, .public-room-status {
+    white-space: nowrap;
+    font-size: 12px;
+    color: #dbc7b5;
+}
+.public-room-status.waiting { color: #e7c98f; }
+.public-room-status.playing { color: #9f958e; }
+.public-room-join { min-width: 70px; }
+.public-rooms-empty {
+    padding: 24px 12px;
+    text-align: center;
+    color: var(--muted);
+    border: 1px dashed rgba(255,236,210,.12);
+    border-radius: 13px;
+}
+
+@media (max-width: 720px) {
+    .auth-view { min-height: calc(100vh - 62px); padding: 18px 14px 28px; }
+    .auth-shell { grid-template-columns: 1fr; gap: 18px; }
+    .auth-brand-block { text-align: center; }
+    .auth-brand-block h1 { font-size: 56px; }
+    .lobby-view { padding-top: 14px; }
+    .lobby-profile-bar { align-items: flex-start; }
+    .lobby-profile-actions { flex-wrap: wrap; justify-content: flex-end; }
+    .lobby-action-grid { grid-template-columns: 1fr; }
+    .lobby-online-buttons { grid-template-columns: 1fr; }
+    .public-room-row {
+        grid-template-columns: minmax(0,1fr) auto;
+        gap: 6px 10px;
+    }
+    .public-room-main { grid-column: 1 / 2; }
+    .public-room-count { grid-column: 2; grid-row: 1; }
+    .public-room-status { grid-column: 1; grid-row: 2; }
+    .public-room-join { grid-column: 2; grid-row: 2; min-height: 38px; }
+}

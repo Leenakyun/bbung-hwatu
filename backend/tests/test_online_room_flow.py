@@ -117,6 +117,54 @@ class OnlineRoomFlowTests(
 
         self.fail("밤일낮짱 선 결정이 제한 횟수 안에 끝나지 않았습니다.")
 
+    def test_public_room_list_excludes_private_rooms(self):
+        public_response = self.client.post(
+            "/api/online/rooms",
+            json={
+                "nickname": "공개방장",
+                "max_players": 4,
+                "is_private": False,
+            },
+        )
+        self.assertEqual(public_response.status_code, 200)
+        public_room_id = public_response.get_json()["game_id"]
+
+        private_response = self.client.post(
+            "/api/online/rooms",
+            json={
+                "nickname": "비밀방장",
+                "max_players": 3,
+                "is_private": True,
+                "room_password": "1234",
+            },
+        )
+        self.assertEqual(private_response.status_code, 200)
+        private_room_id = private_response.get_json()["game_id"]
+
+        response = self.client.get(
+            "/api/online/rooms"
+        )
+        self.assertEqual(response.status_code, 200)
+
+        data = response.get_json()
+        listed_ids = {
+            room["game_id"]
+            for room in data["rooms"]
+        }
+
+        self.assertIn(public_room_id, listed_ids)
+        self.assertNotIn(private_room_id, listed_ids)
+
+        listed_public = next(
+            room
+            for room in data["rooms"]
+            if room["game_id"] == public_room_id
+        )
+        self.assertEqual(listed_public["owner_nickname"], "공개방장")
+        self.assertEqual(listed_public["player_count"], 1)
+        self.assertEqual(listed_public["max_players"], 4)
+        self.assertTrue(listed_public["can_join"])
+
     def test_create_online_room_waiting(self):
         response = self.client.post(
             "/api/online/rooms",
