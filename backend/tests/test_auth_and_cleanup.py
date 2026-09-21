@@ -116,6 +116,33 @@ class AuthAndCleanupTests(unittest.TestCase):
             401,
         )
 
+
+    def test_existing_user_can_login_from_new_client_session(self):
+        register = self.client.post(
+            "/api/auth/register",
+            json={
+                "username": "returning",
+                "password": "secret1",
+                "nickname": "재접속",
+            },
+        )
+        self.assertEqual(register.status_code, 200)
+
+        fresh_client = app_module.app.test_client()
+        login = fresh_client.post(
+            "/api/auth/login",
+            json={
+                "username": "returning",
+                "password": "secret1",
+            },
+        )
+
+        self.assertEqual(login.status_code, 200)
+        payload = login.get_json()
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["token"])
+        self.assertEqual(payload["user"]["username"], "returning")
+
     def test_password_is_not_stored_as_plain_text(self):
         self._register_and_login()
 

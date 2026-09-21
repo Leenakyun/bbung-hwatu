@@ -61,6 +61,41 @@ let currentGameId = null;
                 "authNickname"
             );
 
+        const registerUsername =
+            document.getElementById(
+                "registerUsername"
+            );
+
+        const registerPassword =
+            document.getElementById(
+                "registerPassword"
+            );
+
+        const loginForm =
+            document.getElementById(
+                "loginForm"
+            );
+
+        const registerForm =
+            document.getElementById(
+                "registerForm"
+            );
+
+        const registerPanel =
+            document.getElementById(
+                "registerPanel"
+            );
+
+        const showRegisterButton =
+            document.getElementById(
+                "showRegisterButton"
+            );
+
+        const showLoginButton =
+            document.getElementById(
+                "showLoginButton"
+            );
+
         const authStatus =
             document.getElementById(
                 "authStatus"
@@ -609,10 +644,10 @@ let currentGameId = null;
 
         async function registerAccount() {
             const username =
-                authUsername.value.trim();
+                registerUsername.value.trim();
 
             const password =
-                authPassword.value;
+                registerPassword.value;
 
             const nickname =
                 authNickname.value.trim();
@@ -648,9 +683,13 @@ let currentGameId = null;
                     return;
                 }
 
+                authUsername.value = username;
+                authPassword.value = "";
+                registerPanel.hidden = true;
+                authUsername.focus();
+
                 showMessage(
-                    "회원가입 완료. "
-                    + "이제 로그인해 주세요."
+                    "회원가입 완료. 비밀번호를 입력해 로그인해 주세요."
                 );
 
             } catch (error) {
@@ -3953,17 +3992,38 @@ let currentGameId = null;
 
         setUiMode("lobby");
 
-        registerButton
-            .addEventListener(
-                "click",
-                registerAccount
-            );
+        loginForm.addEventListener(
+            "submit",
+            event => {
+                event.preventDefault();
+                loginAccount();
+            }
+        );
 
-        loginButton
-            .addEventListener(
-                "click",
-                loginAccount
-            );
+        registerForm.addEventListener(
+            "submit",
+            event => {
+                event.preventDefault();
+                registerAccount();
+            }
+        );
+
+        showRegisterButton.addEventListener(
+            "click",
+            () => {
+                registerPanel.hidden = false;
+                registerUsername.value = authUsername.value.trim();
+                registerUsername.focus();
+            }
+        );
+
+        showLoginButton.addEventListener(
+            "click",
+            () => {
+                registerPanel.hidden = true;
+                authUsername.focus();
+            }
+        );
 
         logoutButton
             .addEventListener(
