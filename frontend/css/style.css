@@ -3597,3 +3597,55 @@ body.game-mode .game-only-refresh {
     padding: 4px 7px;
     font-size: 10px;
 }
+
+
+/* Gameplay v18.1: tutorial checkbox + level selector on one row */
+.tutorial-inline-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+}
+
+.tutorial-inline-row .tutorial-toggle-row {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.tutorial-level-inline {
+    flex: 0 0 auto;
+    margin-top: 0;
+}
+
+.tutorial-level-inline > span {
+    display: none;
+}
+
+.tutorial-level-inline select {
+    width: 76px;
+    min-width: 76px;
+    min-height: 34px;
+    padding: 4px 6px;
+    font-size: 10px;
+}
+
+@media (max-width: 420px) {
+    .tutorial-inline-row {
+        gap: 5px;
+    }
+
+    .tutorial-inline-row .tutorial-toggle-row {
+        padding: 7px 8px;
+    }
+
+    .tutorial-inline-row .tutorial-toggle-row small {
+        font-size: 7px;
+    }
+
+    .tutorial-level-inline select {
+        width: 70px;
+        min-width: 70px;
+        min-height: 32px;
+        font-size: 9px;
+    }
+}
