@@ -3771,3 +3771,53 @@ body.game-mode .game-only-refresh {
         max-height: 72px;
     }
 }
+
+
+/* Gameplay v20: staged beginner practice tutorial */
+.tutorial-single-toggle {
+    margin-top: 0;
+}
+
+.tutorial-gold-card {
+    border-color: #f6cf66 !important;
+    box-shadow:
+        0 0 0 2px rgba(246, 207, 102, .78),
+        0 0 12px rgba(246, 207, 102, .72),
+        0 0 22px rgba(246, 207, 102, .34) !important;
+    animation: tutorialGoldPulse 1.15s ease-in-out infinite alternate;
+}
+
+@keyframes tutorialGoldPulse {
+    from {
+        filter: brightness(1);
+    }
+    to {
+        filter: brightness(1.12);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tutorial-gold-card {
+        animation: none;
+    }
+}
+
+@media (max-width: 720px) and (orientation: portrait) {
+    .tutorial-guide {
+        top: 36px;
+        width: min(260px, calc(100vw - 82px));
+        max-height: none;
+        padding: 6px 8px;
+    }
+
+    .tutorial-guide-kicker {
+        display: none;
+    }
+
+    .tutorial-guide p {
+        max-height: none;
+        overflow: visible;
+        font-size: 7.5px;
+        line-height: 1.25;
+    }
+}

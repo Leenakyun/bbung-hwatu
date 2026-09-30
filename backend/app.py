@@ -30,6 +30,7 @@ from game.manager import GameManager
 from game.realtime import OnlineRealtimeHub
 from game.models import (
     AIDifficulty,
+    Card,
     Player,
     PlayerType,
 )
@@ -728,6 +729,246 @@ def serialize_bomb_bagaji(declaration):
     }
 
 
+
+TUTORIAL_STAGE_ORDER = [
+    "BBUNG",
+    "GENERAL_BAGAJI",
+    "BOMB_BAGAJI",
+    "STOP_TTOI",
+    "STOP_STRAIGHT",
+    "STOP_HIGH_SUM",
+    "STOP_MINUS_100_FOUR_PAIR",
+    "STOP_MINUS_100_LOW_SUM",
+    "STOP_MINUS_200",
+    "COMPLETE",
+]
+
+TUTORIAL_STAGE_INFO = {
+    "BBUNG": {
+        "title": "1. 뻥 연습",
+        "text": "AI가 3월을 버렸어요. 금빛 3월 두 장으로 뻥을 선언해 보세요.",
+        "highlight_months": [3],
+    },
+    "GENERAL_BAGAJI": {
+        "title": "2. 일반 바가지",
+        "text": "뻥을 한 뒤 손패가 같은 월 2장만 남으면 일반 바가지를 선언할 수 있어요.",
+        "highlight_months": [5],
+    },
+    "BOMB_BAGAJI": {
+        "title": "3. 폭탄 바가지",
+        "text": "같은 월 3장 + 다른 같은 월 2장. 2장 쪽 월로 폭탄 바가지를 선언해 보세요.",
+        "highlight_months": [4, 8],
+    },
+    "STOP_TTOI": {
+        "title": "4. 또이또이 STOP",
+        "text": "같은 월 2장씩 세 쌍이면 또이또이예요. STOP을 눌러 확인하세요.",
+        "highlight_months": [2, 5, 8],
+        "expected_stop_type": "TTOI_TTOI",
+    },
+    "STOP_STRAIGHT": {
+        "title": "5. 스트레이트 STOP",
+        "text": "서로 다른 6개월이 연속으로 이어지면 스트레이트예요.",
+        "highlight_months": [1, 2, 3, 4, 5, 6],
+        "expected_stop_type": "STRAIGHT",
+    },
+    "STOP_HIGH_SUM": {
+        "title": "6. 60 이상 STOP",
+        "text": "6장 월 합계가 60 이상이면 합계만큼 마이너스 점수 STOP이 가능해요.",
+        "highlight_months": [9, 10, 11, 12],
+        "expected_stop_type": "HIGH_SUM",
+    },
+    "STOP_MINUS_100_FOUR_PAIR": {
+        "title": "7. -100 STOP · 4장+2장",
+        "text": "같은 월 4장 + 다른 같은 월 2장을 만들면 -100 STOP이에요.",
+        "highlight_months": [4, 5],
+        "expected_stop_type": "MINUS_100",
+    },
+    "STOP_MINUS_100_LOW_SUM": {
+        "title": "8. -100 STOP · 합계 10 이하",
+        "text": "6장 월 합계가 10 이하면 -100 STOP이에요.",
+        "highlight_months": [1, 2, 3],
+        "expected_stop_type": "MINUS_100",
+    },
+    "STOP_MINUS_200": {
+        "title": "9. -200 STOP",
+        "text": "4장+2장 조건과 합계 10 이하를 동시에 만족하면 -200 STOP이에요.",
+        "highlight_months": [1, 2],
+        "expected_stop_type": "MINUS_200",
+    },
+    "COMPLETE": {
+        "title": "튜토리얼 완료",
+        "text": "핵심 조합 연습이 끝났어요. 이제 초보 AI 자유 연습으로 이어갈 수 있습니다.",
+        "highlight_months": [],
+    },
+}
+
+
+def _tutorial_cards(spec):
+    return [
+        Card(month=month, copy_index=copy_index)
+        for month, copy_index in spec
+    ]
+
+
+def _tutorial_fill_ai_hands(state, used_ids):
+    filler_specs = [
+        [(6, 1), (7, 2), (9, 3), (11, 4), (12, 1)],
+        [(6, 2), (7, 3), (9, 4), (10, 1), (12, 2)],
+    ]
+
+    bots = [
+        player
+        for player in state.players
+        if player.player_type == PlayerType.BOT
+    ]
+
+    for bot, specs in zip(bots, filler_specs):
+        bot.hand = []
+        for month, copy_index in specs:
+            card = Card(month=month, copy_index=copy_index)
+            if card.card_id in used_ids:
+                continue
+            bot.hand.append(card)
+            used_ids.add(card.card_id)
+            if len(bot.hand) >= 5:
+                break
+
+
+def prepare_tutorial_stage(game, stage):
+    if stage not in TUTORIAL_STAGE_INFO:
+        raise ValueError("지원하지 않는 튜토리얼 단계입니다.")
+
+    state = game.state
+    human = get_human_player(state)
+    if human is None:
+        raise ValueError("사람 플레이어를 찾을 수 없습니다.")
+
+    game.tutorial_enabled = True
+    game.tutorial_stage = stage
+
+    state.status = GameStatus.PLAYING
+    state.round_number = 1
+    state.max_rounds = 20
+    state.dealer_id = human.player_id
+    state.current_turn_player_id = human.player_id
+    state.turn_phase = TurnPhase.DISCARD
+    state.last_discarded_card = None
+    state.last_discarded_by_player_id = None
+    state.bbung_candidate_player_ids = []
+    state.bbung_reaction_deadline = None
+    state.active_bagaji_declarations = []
+    state.active_bomb_bagaji_declarations = []
+    state.round_winner_id = None
+    state.round_finalized = False
+    state.round_end_reason = None
+    state.declared_stop_type = None
+    state.surprise_stop_dokbak = False
+    state.bagaji_victim_id = None
+    state.triggered_bagaji_month = None
+    state.discard_pile = []
+
+    for player in state.players:
+        player.hand = []
+        player.round_score = 0
+        player.bbung_count = 0
+        player.bbung_months = []
+
+    stage_hands = {
+        "BBUNG": [(3, 1), (3, 2), (7, 1)],
+        "GENERAL_BAGAJI": [(5, 1), (5, 2)],
+        "BOMB_BAGAJI": [(4, 1), (4, 2), (4, 3), (8, 1), (8, 2)],
+        "STOP_TTOI": [(2, 1), (2, 2), (5, 1), (5, 2), (8, 1), (8, 2)],
+        "STOP_STRAIGHT": [(1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1)],
+        "STOP_HIGH_SUM": [(9, 1), (10, 1), (10, 2), (11, 1), (11, 2), (12, 1)],
+        "STOP_MINUS_100_FOUR_PAIR": [(4, 1), (4, 2), (4, 3), (4, 4), (5, 1), (5, 2)],
+        "STOP_MINUS_100_LOW_SUM": [(1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (3, 1)],
+        "STOP_MINUS_200": [(1, 1), (1, 2), (1, 3), (1, 4), (2, 1), (2, 2)],
+        "COMPLETE": [(1, 1), (3, 1), (5, 1), (7, 1), (9, 1)],
+    }
+
+    human.hand = _tutorial_cards(stage_hands[stage])
+    used_ids = {card.card_id for card in human.hand}
+
+    if stage == "BBUNG":
+        discarded = Card(month=3, copy_index=3)
+        state.last_discarded_card = discarded
+        ai_player = next(
+            player for player in state.players
+            if player.player_type == PlayerType.BOT
+        )
+        state.last_discarded_by_player_id = ai_player.player_id
+        state.discard_pile = [discarded]
+        state.turn_phase = TurnPhase.REACTION
+        state.current_turn_player_id = ai_player.player_id
+        state.bbung_candidate_player_ids = [human.player_id]
+        state.bbung_reaction_deadline = (
+            datetime.now(timezone.utc) + timedelta(minutes=10)
+        )
+        used_ids.add(discarded.card_id)
+
+    if stage == "GENERAL_BAGAJI":
+        human.bbung_count = 1
+        human.bbung_months = [3]
+
+    _tutorial_fill_ai_hands(state, used_ids)
+
+    state.deck = Deck()
+    state.deck.cards = [
+        card
+        for card in state.deck.cards
+        if card.card_id not in used_ids
+    ]
+
+
+def next_tutorial_stage(current_stage):
+    try:
+        index = TUTORIAL_STAGE_ORDER.index(current_stage)
+    except ValueError:
+        return "BBUNG"
+
+    if index >= len(TUTORIAL_STAGE_ORDER) - 1:
+        return "COMPLETE"
+
+    return TUTORIAL_STAGE_ORDER[index + 1]
+
+
+def serialize_tutorial(game):
+    if not getattr(game, "tutorial_enabled", False):
+        return {
+            "enabled": False,
+            "stage": None,
+            "title": None,
+            "text": None,
+            "highlight_card_ids": [],
+            "expected_stop_type": None,
+            "complete": False,
+        }
+
+    stage = game.tutorial_stage or "BBUNG"
+    info = TUTORIAL_STAGE_INFO.get(stage, TUTORIAL_STAGE_INFO["BBUNG"])
+    human = get_human_player(game.state)
+
+    highlight_months = set(info.get("highlight_months", []))
+    highlight_card_ids = []
+
+    if human is not None:
+        highlight_card_ids = [
+            card.card_id
+            for card in human.hand
+            if card.month in highlight_months
+        ]
+
+    return {
+        "enabled": True,
+        "stage": stage,
+        "title": info["title"],
+        "text": info["text"],
+        "highlight_card_ids": highlight_card_ids,
+        "expected_stop_type": info.get("expected_stop_type"),
+        "complete": stage == "COMPLETE",
+    }
+
+
 def serialize_game(game):
     state = game.state
 
@@ -735,6 +976,7 @@ def serialize_game(game):
         "ok": True,
         "game_id": game.game_id,
         "mode": game.mode.value,
+        "tutorial": serialize_tutorial(game),
         "owner_id": game.owner_id,
         "max_players": game.max_players,
         "is_private": game.is_private,
@@ -1567,6 +1809,10 @@ def create_game():
         AIDifficulty.BEGINNER.value,
     )
 
+    tutorial_enabled = bool(
+        data.get("tutorial_enabled", False)
+    )
+
     try:
         ai_difficulty = AIDifficulty(
             ai_difficulty_value
@@ -1650,7 +1896,29 @@ def create_game():
         owner_id=owner_id,
         max_players=3,
         state=state,
+        tutorial_enabled=(
+            tutorial_enabled
+            and ai_difficulty == AIDifficulty.BEGINNER
+        ),
+        tutorial_stage=(
+            "BBUNG"
+            if (
+                tutorial_enabled
+                and ai_difficulty == AIDifficulty.BEGINNER
+            )
+            else None
+        ),
     )
+
+    if game.tutorial_enabled:
+        prepare_tutorial_stage(
+            game,
+            "BBUNG",
+        )
+        manager.add_game(game)
+        return jsonify(
+            serialize_game(game)
+        )
 
     # AI 대전도 온라인과 동일하게 밤일낮짱부터 시작한다.
     # 서버 현재 시각을 한국 표준시(KST)로 변환하여
@@ -2823,6 +3091,48 @@ def get_game(game_id: str):
             ),
             404,
         )
+
+    return jsonify(
+        serialize_game(game)
+    )
+
+
+
+@app.post(
+    "/api/games/<game_id>/tutorial/advance"
+)
+def advance_tutorial_stage(game_id: str):
+    game = manager.get_game(game_id)
+
+    if game is None:
+        return jsonify({
+            "ok": False,
+            "error": "GAME_NOT_FOUND",
+            "message": "게임을 찾을 수 없습니다.",
+        }), 404
+
+    if (
+        game.mode != GameMode.SOLO_AI
+        or not getattr(game, "tutorial_enabled", False)
+    ):
+        return jsonify({
+            "ok": False,
+            "error": "TUTORIAL_NOT_ACTIVE",
+            "message": "튜토리얼 게임이 아닙니다.",
+        }), 400
+
+    stage = next_tutorial_stage(
+        game.tutorial_stage or "BBUNG"
+    )
+
+    try:
+        prepare_tutorial_stage(game, stage)
+    except ValueError as error:
+        return jsonify({
+            "ok": False,
+            "error": "TUTORIAL_STAGE_FAILED",
+            "message": str(error),
+        }), 400
 
     return jsonify(
         serialize_game(game)
@@ -4526,6 +4836,26 @@ def declare_human_stop(
     requested_stop_type = (
         data.get("stop_type")
     )
+
+    tutorial_info = serialize_tutorial(game)
+    tutorial_expected_stop = (
+        tutorial_info.get("expected_stop_type")
+        if tutorial_info.get("enabled")
+        else None
+    )
+
+    if (
+        tutorial_expected_stop
+        and requested_stop_type != tutorial_expected_stop
+    ):
+        return jsonify({
+            "ok": False,
+            "error": "TUTORIAL_STOP_TYPE_MISMATCH",
+            "message": (
+                "이번 연습에서는 "
+                f"{tutorial_expected_stop} STOP을 선택해 보세요."
+            ),
+        }), 400
 
     if not requested_stop_type:
         return (

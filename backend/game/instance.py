@@ -27,6 +27,10 @@ class GameInstance:
     is_private: bool = False
     room_password_hash: str | None = None
 
+    # 초보 AI 실전 튜토리얼 전용 상태.
+    tutorial_enabled: bool = False
+    tutorial_stage: str | None = None
+
     created_at: datetime = field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
