@@ -746,59 +746,91 @@ TUTORIAL_STAGE_ORDER = [
 TUTORIAL_STAGE_INFO = {
     "BBUNG": {
         "title": "1. 뻥 연습",
-        "text": "AI가 3월을 버렸어요. 금빛 3월 두 장으로 뻥을 선언해 보세요.",
-        "highlight_months": [3],
+        "highlight_months": [3, 5],
     },
     "GENERAL_BAGAJI": {
         "title": "2. 일반 바가지",
-        "text": "뻥을 한 뒤 손패가 같은 월 2장만 남으면 일반 바가지를 선언할 수 있어요.",
         "highlight_months": [5],
     },
     "BOMB_BAGAJI": {
         "title": "3. 폭탄 바가지",
-        "text": "같은 월 3장 + 다른 같은 월 2장. 2장 쪽 월로 폭탄 바가지를 선언해 보세요.",
         "highlight_months": [4, 8],
     },
     "STOP_TTOI": {
         "title": "4. 또이또이 STOP",
-        "text": "같은 월 2장씩 세 쌍이면 또이또이예요. STOP을 눌러 확인하세요.",
         "highlight_months": [2, 5, 8],
         "expected_stop_type": "TTOI_TTOI",
     },
     "STOP_STRAIGHT": {
         "title": "5. 스트레이트 STOP",
-        "text": "서로 다른 6개월이 연속으로 이어지면 스트레이트예요.",
         "highlight_months": [1, 2, 3, 4, 5, 6],
         "expected_stop_type": "STRAIGHT",
     },
     "STOP_HIGH_SUM": {
         "title": "6. 60 이상 STOP",
-        "text": "6장 월 합계가 60 이상이면 합계만큼 마이너스 점수 STOP이 가능해요.",
         "highlight_months": [9, 10, 11, 12],
         "expected_stop_type": "HIGH_SUM",
     },
     "STOP_MINUS_100_FOUR_PAIR": {
         "title": "7. -100 STOP · 4장+2장",
-        "text": "같은 월 4장 + 다른 같은 월 2장을 만들면 -100 STOP이에요.",
         "highlight_months": [4, 5],
         "expected_stop_type": "MINUS_100",
     },
     "STOP_MINUS_100_LOW_SUM": {
         "title": "8. -100 STOP · 합계 10 이하",
-        "text": "6장 월 합계가 10 이하면 -100 STOP이에요.",
         "highlight_months": [1, 2, 3],
         "expected_stop_type": "MINUS_100",
     },
     "STOP_MINUS_200": {
         "title": "9. -200 STOP",
-        "text": "4장+2장 조건과 합계 10 이하를 동시에 만족하면 -200 STOP이에요.",
         "highlight_months": [1, 2],
         "expected_stop_type": "MINUS_200",
     },
     "COMPLETE": {
         "title": "튜토리얼 완료",
-        "text": "핵심 조합 연습이 끝났어요. 이제 초보 AI 자유 연습으로 이어갈 수 있습니다.",
         "highlight_months": [],
+    },
+}
+
+# 각 단계는 완성 조합을 바로 주지 않는다.
+# 실제 플레이처럼 5장 이하에서 시작하고,
+# 덱 맨 위에 '마지막 완성 카드'를 배치해서 사용자가 직접 뽑게 한다.
+TUTORIAL_STAGE_SETUP = {
+    "BBUNG": {
+        "hand": [(3, 1), (3, 2), (5, 1), (5, 2), (9, 1)],
+        "draw": (11, 1),
+    },
+    "BOMB_BAGAJI": {
+        "hand": [(4, 1), (4, 2), (4, 3), (8, 1)],
+        "draw": (8, 2),
+    },
+    "STOP_TTOI": {
+        "hand": [(2, 1), (2, 2), (5, 1), (5, 2), (8, 1)],
+        "draw": (8, 2),
+    },
+    "STOP_STRAIGHT": {
+        "hand": [(1, 1), (2, 1), (3, 1), (4, 1), (5, 1)],
+        "draw": (6, 1),
+    },
+    "STOP_HIGH_SUM": {
+        "hand": [(9, 1), (10, 1), (10, 2), (11, 1), (11, 2)],
+        "draw": (12, 1),
+    },
+    "STOP_MINUS_100_FOUR_PAIR": {
+        "hand": [(4, 1), (4, 2), (4, 3), (4, 4), (5, 1)],
+        "draw": (5, 2),
+    },
+    "STOP_MINUS_100_LOW_SUM": {
+        "hand": [(1, 1), (1, 2), (1, 3), (2, 1), (2, 2)],
+        "draw": (3, 1),
+    },
+    "STOP_MINUS_200": {
+        "hand": [(1, 1), (1, 2), (1, 3), (1, 4), (2, 1)],
+        "draw": (2, 2),
+    },
+    "COMPLETE": {
+        "hand": [(1, 1), (3, 1), (5, 1), (7, 1), (9, 1)],
+        "draw": None,
     },
 }
 
@@ -811,9 +843,10 @@ def _tutorial_cards(spec):
 
 
 def _tutorial_fill_ai_hands(state, used_ids):
+    # 실제 연습판처럼 상대도 손패를 가진 상태로 보이게 한다.
     filler_specs = [
         [(6, 1), (7, 2), (9, 3), (11, 4), (12, 1)],
-        [(6, 2), (7, 3), (9, 4), (10, 1), (12, 2)],
+        [(6, 2), (7, 3), (9, 4), (10, 3), (12, 2)],
     ]
 
     bots = [
@@ -825,7 +858,10 @@ def _tutorial_fill_ai_hands(state, used_ids):
     for bot, specs in zip(bots, filler_specs):
         bot.hand = []
         for month, copy_index in specs:
-            card = Card(month=month, copy_index=copy_index)
+            card = Card(
+                month=month,
+                copy_index=copy_index,
+            )
             if card.card_id in used_ids:
                 continue
             bot.hand.append(card)
@@ -834,14 +870,44 @@ def _tutorial_fill_ai_hands(state, used_ids):
                 break
 
 
-def prepare_tutorial_stage(game, stage):
-    if stage not in TUTORIAL_STAGE_INFO:
-        raise ValueError("지원하지 않는 튜토리얼 단계입니다.")
+def _tutorial_build_deck(state, used_ids, forced_draw=None):
+    deck = Deck()
 
+    forced_id = None
+    if forced_draw is not None:
+        forced_card = Card(
+            month=forced_draw[0],
+            copy_index=forced_draw[1],
+        )
+        forced_id = forced_card.card_id
+        used_ids.add(forced_id)
+
+    deck.cards = [
+        card
+        for card in deck.cards
+        if card.card_id not in used_ids
+    ]
+
+    # Deck.draw()은 pop()이므로 마지막 요소가 다음 드로우 카드다.
+    if forced_draw is not None:
+        deck.cards.append(
+            Card(
+                month=forced_draw[0],
+                copy_index=forced_draw[1],
+            )
+        )
+
+    state.deck = deck
+
+
+def _reset_tutorial_state(game, stage):
     state = game.state
     human = get_human_player(state)
+
     if human is None:
-        raise ValueError("사람 플레이어를 찾을 수 없습니다.")
+        raise ValueError(
+            "사람 플레이어를 찾을 수 없습니다."
+        )
 
     game.tutorial_enabled = True
     game.tutorial_stage = stage
@@ -851,7 +917,7 @@ def prepare_tutorial_stage(game, stage):
     state.max_rounds = 20
     state.dealer_id = human.player_id
     state.current_turn_player_id = human.player_id
-    state.turn_phase = TurnPhase.DISCARD
+    state.turn_phase = TurnPhase.DRAW
     state.last_discarded_card = None
     state.last_discarded_by_player_id = None
     state.bbung_candidate_player_ids = []
@@ -873,67 +939,222 @@ def prepare_tutorial_stage(game, stage):
         player.bbung_count = 0
         player.bbung_months = []
 
-    stage_hands = {
-        "BBUNG": [(3, 1), (3, 2), (7, 1)],
-        "GENERAL_BAGAJI": [(5, 1), (5, 2)],
-        "BOMB_BAGAJI": [(4, 1), (4, 2), (4, 3), (8, 1), (8, 2)],
-        "STOP_TTOI": [(2, 1), (2, 2), (5, 1), (5, 2), (8, 1), (8, 2)],
-        "STOP_STRAIGHT": [(1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1)],
-        "STOP_HIGH_SUM": [(9, 1), (10, 1), (10, 2), (11, 1), (11, 2), (12, 1)],
-        "STOP_MINUS_100_FOUR_PAIR": [(4, 1), (4, 2), (4, 3), (4, 4), (5, 1), (5, 2)],
-        "STOP_MINUS_100_LOW_SUM": [(1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (3, 1)],
-        "STOP_MINUS_200": [(1, 1), (1, 2), (1, 3), (1, 4), (2, 1), (2, 2)],
-        "COMPLETE": [(1, 1), (3, 1), (5, 1), (7, 1), (9, 1)],
-    }
+    return human
 
-    human.hand = _tutorial_cards(stage_hands[stage])
-    used_ids = {card.card_id for card in human.hand}
 
-    if stage == "BBUNG":
-        discarded = Card(month=3, copy_index=3)
-        state.last_discarded_card = discarded
-        ai_player = next(
-            player for player in state.players
-            if player.player_type == PlayerType.BOT
+def prepare_tutorial_stage(game, stage):
+    if stage not in TUTORIAL_STAGE_INFO:
+        raise ValueError(
+            "지원하지 않는 튜토리얼 단계입니다."
         )
-        state.last_discarded_by_player_id = ai_player.player_id
-        state.discard_pile = [discarded]
-        state.turn_phase = TurnPhase.REACTION
-        state.current_turn_player_id = ai_player.player_id
-        state.bbung_candidate_player_ids = [human.player_id]
-        state.bbung_reaction_deadline = (
-            datetime.now(timezone.utc) + timedelta(minutes=10)
-        )
-        used_ids.add(discarded.card_id)
 
+    human = _reset_tutorial_state(
+        game,
+        stage,
+    )
+    state = game.state
+
+    # 일반 바가지는 뻥 성공 직후의 실제 손패(5월 2장)를 그대로 이어 쓴다.
+    # 따라서 이 단계는 별도 세팅 함수로 직접 시작하지 않는다.
     if stage == "GENERAL_BAGAJI":
+        human.hand = _tutorial_cards(
+            [(5, 1), (5, 2)]
+        )
         human.bbung_count = 1
         human.bbung_months = [3]
+        state.turn_phase = TurnPhase.DISCARD
 
-    _tutorial_fill_ai_hands(state, used_ids)
+        used_ids = {
+            card.card_id
+            for card in human.hand
+        }
+        _tutorial_fill_ai_hands(
+            state,
+            used_ids,
+        )
+        _tutorial_build_deck(
+            state,
+            used_ids,
+        )
+        return
 
-    state.deck = Deck()
-    state.deck.cards = [
-        card
-        for card in state.deck.cards
-        if card.card_id not in used_ids
+    setup = TUTORIAL_STAGE_SETUP[stage]
+    human.hand = _tutorial_cards(
+        setup["hand"]
+    )
+
+    used_ids = {
+        card.card_id
+        for card in human.hand
+    }
+
+    _tutorial_fill_ai_hands(
+        state,
+        used_ids,
+    )
+
+    _tutorial_build_deck(
+        state,
+        used_ids,
+        forced_draw=setup.get("draw"),
+    )
+
+    if stage == "COMPLETE":
+        state.turn_phase = TurnPhase.DRAW
+
+
+def _tutorial_script_ai_bbung_discard(game):
+    """
+    뻥 연습에서 사용자가 평범하게 한 턴을 진행한 뒤
+    AI 1이 실제 상대처럼 3월을 버린 상황을 만든다.
+    """
+    state = game.state
+    human = get_human_player(state)
+
+    ai_player = next(
+        player
+        for player in state.players
+        if player.player_type == PlayerType.BOT
+    )
+
+    discarded = Card(
+        month=3,
+        copy_index=3,
+    )
+
+    # AI 손패에 3월 카드가 없어도 튜토리얼 전용 상대 행동으로
+    # 버림패를 생성한다. 덱/손패 card_id 중복은 피한다.
+    state.discard_pile.append(discarded)
+    state.last_discarded_card = discarded
+    state.last_discarded_by_player_id = (
+        ai_player.player_id
+    )
+    state.current_turn_player_id = (
+        ai_player.player_id
+    )
+    state.turn_phase = TurnPhase.REACTION
+    state.bbung_candidate_player_ids = [
+        human.player_id
     ]
+    state.bbung_reaction_deadline = (
+        datetime.now(timezone.utc)
+        + timedelta(minutes=10)
+    )
 
 
 def next_tutorial_stage(current_stage):
     try:
-        index = TUTORIAL_STAGE_ORDER.index(current_stage)
+        index = TUTORIAL_STAGE_ORDER.index(
+            current_stage
+        )
     except ValueError:
         return "BBUNG"
 
-    if index >= len(TUTORIAL_STAGE_ORDER) - 1:
+    if index >= (
+        len(TUTORIAL_STAGE_ORDER) - 1
+    ):
         return "COMPLETE"
 
-    return TUTORIAL_STAGE_ORDER[index + 1]
+    return TUTORIAL_STAGE_ORDER[
+        index + 1
+    ]
+
+
+def _tutorial_stage_text(game, stage):
+    state = game.state
+    human = get_human_player(state)
+
+    if stage == "BBUNG":
+        if state.turn_phase == TurnPhase.DRAW:
+            return (
+                "먼저 평범하게 한 장을 뽑아보세요. "
+                "금빛 3월 두 장과 5월 두 장은 남겨두세요."
+            )
+        if state.turn_phase == TurnPhase.DISCARD:
+            return (
+                "이제 금빛 카드가 아닌 9월이나 방금 뽑은 카드를 한 장 버리세요. "
+                "그 다음 AI가 움직입니다."
+            )
+        if state.turn_phase == TurnPhase.REACTION:
+            return (
+                "AI 1이 3월을 버렸어요. "
+                "내 3월 두 장이 금빛으로 빛납니다. "
+                "뻥을 선언하고, 추가 버림은 금빛이 아닌 카드로 골라보세요."
+            )
+
+    if stage == "GENERAL_BAGAJI":
+        return (
+            "방금 뻥으로 3월 두 장을 냈고 5월 두 장만 남았습니다. "
+            "손패가 같은 월 2장뿐일 때 일반 바가지를 선언할 수 있어요."
+        )
+
+    if stage == "BOMB_BAGAJI":
+        if state.turn_phase == TurnPhase.DRAW:
+            return (
+                "이번에는 4월 세 장과 8월 한 장이 있어요. "
+                "덱에서 한 장을 직접 뽑아 조합을 완성해 보세요."
+            )
+        return (
+            "8월 한 장이 더 들어와 4월 3장 + 8월 2장이 됐어요. "
+            "이 형태에서 2장인 8월로 폭탄 바가지를 선언할 수 있습니다."
+        )
+
+    stop_texts = {
+        "STOP_TTOI": (
+            "2월·5월은 이미 한 쌍입니다. "
+            "8월 한 장을 뽑아 세 번째 쌍을 완성해 보세요.",
+            "2장 + 2장 + 2장이 완성됐어요. 또이또이 STOP을 눌러보세요.",
+        ),
+        "STOP_STRAIGHT": (
+            "1~5월이 이어져 있어요. "
+            "한 장을 뽑아 6개월 연속을 완성해 보세요.",
+            "1~6월 연속 6장이 완성됐어요. 스트레이트 STOP입니다.",
+        ),
+        "STOP_HIGH_SUM": (
+            "높은 월 카드 5장이 모여 있어요. "
+            "한 장을 더 뽑아 합계 60 이상을 만들어 보세요.",
+            "6장 합계가 60 이상이 됐어요. 합계형 STOP을 확인해 보세요.",
+        ),
+        "STOP_MINUS_100_FOUR_PAIR": (
+            "4월 네 장과 5월 한 장이 있어요. "
+            "마지막 한 장을 뽑아 4장+2장을 완성해 보세요.",
+            "4월 4장 + 5월 2장이 완성됐어요. -100 STOP입니다.",
+        ),
+        "STOP_MINUS_100_LOW_SUM": (
+            "낮은 월 카드만 모여 있어요. "
+            "마지막 한 장을 뽑아 6장 합계 10 이하를 만들어 보세요.",
+            "6장 합계가 10 이하가 됐어요. -100 STOP입니다.",
+        ),
+        "STOP_MINUS_200": (
+            "1월 네 장 + 2월 한 장입니다. "
+            "마지막 한 장을 뽑아 두 조건을 동시에 완성해 보세요.",
+            "1월 4장 + 2월 2장이고 합계도 10 이하예요. -200 STOP입니다.",
+        ),
+    }
+
+    if stage in stop_texts:
+        before, after = stop_texts[stage]
+        return (
+            before
+            if state.turn_phase == TurnPhase.DRAW
+            else after
+        )
+
+    if stage == "COMPLETE":
+        return (
+            "연습 완료! 뻥, 일반 바가지, 폭탄 바가지와 "
+            "주요 STOP 조합을 실제 턴 흐름으로 한 번씩 해봤습니다."
+        )
+
+    return ""
 
 
 def serialize_tutorial(game):
-    if not getattr(game, "tutorial_enabled", False):
+    if not getattr(
+        game,
+        "tutorial_enabled",
+        False,
+    ):
         return {
             "enabled": False,
             "stage": None,
@@ -944,29 +1165,58 @@ def serialize_tutorial(game):
             "complete": False,
         }
 
-    stage = game.tutorial_stage or "BBUNG"
-    info = TUTORIAL_STAGE_INFO.get(stage, TUTORIAL_STAGE_INFO["BBUNG"])
-    human = get_human_player(game.state)
+    stage = (
+        game.tutorial_stage
+        or "BBUNG"
+    )
 
-    highlight_months = set(info.get("highlight_months", []))
+    info = TUTORIAL_STAGE_INFO.get(
+        stage,
+        TUTORIAL_STAGE_INFO["BBUNG"],
+    )
+
+    human = get_human_player(
+        game.state
+    )
+
+    highlight_months = set(
+        info.get(
+            "highlight_months",
+            [],
+        )
+    )
+
     highlight_card_ids = []
 
     if human is not None:
         highlight_card_ids = [
             card.card_id
             for card in human.hand
-            if card.month in highlight_months
+            if card.month
+            in highlight_months
         ]
 
     return {
         "enabled": True,
         "stage": stage,
         "title": info["title"],
-        "text": info["text"],
-        "highlight_card_ids": highlight_card_ids,
-        "expected_stop_type": info.get("expected_stop_type"),
-        "complete": stage == "COMPLETE",
+        "text": _tutorial_stage_text(
+            game,
+            stage,
+        ),
+        "highlight_card_ids": (
+            highlight_card_ids
+        ),
+        "expected_stop_type": (
+            info.get(
+                "expected_stop_type"
+            )
+        ),
+        "complete": (
+            stage == "COMPLETE"
+        ),
     }
+
 
 
 def serialize_game(game):
@@ -3252,6 +3502,29 @@ def discard_card(game_id: str):
             )
         )
 
+        if (
+            getattr(game, "tutorial_enabled", False)
+            and game.tutorial_stage == "BBUNG"
+        ):
+            # 금빛 학습 카드(3월/5월)는 이 단계에서 보존해야 한다.
+            if discarded_card.month in (3, 5):
+                # 원상복구 후 다시 선택하게 한다.
+                current_player.hand.append(
+                    discarded_card
+                )
+                if state.discard_pile:
+                    state.discard_pile.pop()
+                state.last_discarded_card = None
+                state.last_discarded_by_player_id = None
+                state.turn_phase = TurnPhase.DISCARD
+                raise ValueError(
+                    "금빛 3월·5월 카드는 이번 연습에서 남겨두세요."
+                )
+
+            _tutorial_script_ai_bbung_discard(
+                game
+            )
+
         # ONLINE은 AI용 /continue를 호출하지 않는다.
         # 따라서 뻥 후보가 전혀 없는 일반 버림은
         # 여기서 즉시 다음 사람의 DRAW 단계로 넘긴다.
@@ -4077,19 +4350,35 @@ def declare_human_bbung(
             )
         )
 
-        # 사람이 추가로 버린 카드에 대해
-        # AI의 연속 뻥을 처리한다.
-        engine.resolve_beginner_ai_reaction_flow()
-
-        # AI 반응이 끝나고 일반 턴으로
-        # 넘어간 경우에만 AI 자동 진행.
         if (
-            state.status
-            == GameStatus.PLAYING
-            and state.turn_phase
-            != TurnPhase.REACTION
+            getattr(game, "tutorial_enabled", False)
+            and game.tutorial_stage == "BBUNG"
         ):
-            engine.run_beginner_ai_until_human_turn()
+            game.tutorial_stage = (
+                "GENERAL_BAGAJI"
+            )
+            state.current_turn_player_id = (
+                human_player.player_id
+            )
+            state.turn_phase = (
+                TurnPhase.DISCARD
+            )
+            state.bbung_candidate_player_ids = []
+            state.bbung_reaction_deadline = None
+        else:
+            # 사람이 추가로 버린 카드에 대해
+            # AI의 연속 뻥을 처리한다.
+            engine.resolve_beginner_ai_reaction_flow()
+
+            # AI 반응이 끝나고 일반 턴으로
+            # 넘어간 경우에만 AI 자동 진행.
+            if (
+                state.status
+                == GameStatus.PLAYING
+                and state.turn_phase
+                != TurnPhase.REACTION
+            ):
+                engine.run_beginner_ai_until_human_turn()
 
         if (
             game.mode == GameMode.ONLINE
@@ -4254,6 +4543,16 @@ def declare_human_bomb_bagaji(
                 month=target_month,
             )
         )
+
+        if (
+            getattr(game, "tutorial_enabled", False)
+            and game.tutorial_stage
+            == "BOMB_BAGAJI"
+        ):
+            prepare_tutorial_stage(
+                game,
+                "STOP_TTOI",
+            )
 
     except ValueError:
         return (
@@ -4473,6 +4772,16 @@ def declare_human_general_bagaji(
                 month=month,
             )
         )
+
+        if (
+            getattr(game, "tutorial_enabled", False)
+            and game.tutorial_stage
+            == "GENERAL_BAGAJI"
+        ):
+            prepare_tutorial_stage(
+                game,
+                "BOMB_BAGAJI",
+            )
 
     except ValueError:
         return (

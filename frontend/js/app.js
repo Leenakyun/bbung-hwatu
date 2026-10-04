@@ -2439,8 +2439,15 @@ let currentGameId = null;
 
         function getTutorialFocusElement(game) {
             const stage = game?.tutorial?.stage;
+            const phase = game?.turn_phase;
 
             if (stage === "BBUNG") {
+                if (phase === "DRAW") {
+                    return drawDeck;
+                }
+                if (phase === "DISCARD") {
+                    return myHandElement;
+                }
                 return bbungPanel;
             }
 
@@ -2449,11 +2456,22 @@ let currentGameId = null;
             }
 
             if (stage === "BOMB_BAGAJI") {
-                return bombBagajiCallButton;
+                return (
+                    phase === "DRAW"
+                        ? drawDeck
+                        : bombBagajiCallButton
+                );
             }
 
-            if (stage && stage.startsWith("STOP_")) {
-                return stopCallButton;
+            if (
+                stage
+                && stage.startsWith("STOP_")
+            ) {
+                return (
+                    phase === "DRAW"
+                        ? drawDeck
+                        : stopCallButton
+                );
             }
 
             return null;
@@ -4699,13 +4717,7 @@ let currentGameId = null;
                     "폭탄 바가지 선언!"
                 );
 
-                if (
-                    latestRenderedGame?.tutorial?.enabled
-                ) {
-                    await advanceTutorialStage();
-                } else {
-                    await refreshAfterAction();
-                }
+                await refreshAfterAction();
 
             } catch (error) {
                 showMessage(
@@ -4792,13 +4804,7 @@ let currentGameId = null;
                     "일반 바가지 선언!"
                 );
 
-                if (
-                    latestRenderedGame?.tutorial?.enabled
-                ) {
-                    await advanceTutorialStage();
-                } else {
-                    await refreshAfterAction();
-                }
+                await refreshAfterAction();
 
             } catch (error) {
                 showMessage(
@@ -4979,13 +4985,7 @@ let currentGameId = null;
                     );
                 }
 
-                if (
-                    latestRenderedGame?.tutorial?.enabled
-                ) {
-                    await advanceTutorialStage();
-                } else {
-                    await refreshAfterAction();
-                }
+                await refreshAfterAction();
 
             } catch (error) {
                 showMessage(

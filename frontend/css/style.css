@@ -3821,3 +3821,24 @@ body.game-mode .game-only-refresh {
         line-height: 1.25;
     }
 }
+
+
+/* Gameplay v20.1: make tutorial feel like real play, not a menu of buttons */
+.tutorial-gold-card {
+    border-color: #ffd86a !important;
+    box-shadow:
+        0 0 0 2px rgba(255, 216, 106, .92),
+        0 0 10px rgba(255, 216, 106, .78),
+        0 0 20px rgba(255, 190, 62, .42) !important;
+}
+
+@media (max-width: 720px) and (orientation: portrait) {
+    .tutorial-guide {
+        width: min(272px, calc(100vw - 82px));
+    }
+
+    .tutorial-guide p {
+        font-size: 8px;
+        line-height: 1.3;
+    }
+}
