@@ -4014,6 +4014,11 @@ let currentGameId = null;
             bbungConfirmButton.disabled =
                 true;
 
+            if (bbungPassButton) {
+                bbungPassButton.style.display =
+                    "";
+            }
+
             selectedBbungExtraCardId =
                 null;
 
@@ -4078,20 +4083,49 @@ let currentGameId = null;
                             card.card_id
                     );
 
+            const isBbungTutorial =
+                game?.tutorial?.enabled
+                && game?.tutorial?.stage
+                    === "BBUNG";
+
             const extraCards =
                 humanPlayer.hand.filter(
-                    card =>
-                        !currentBbungMatchingCardIds
-                            .includes(
-                                card.card_id
-                            )
+                    card => {
+                        if (
+                            currentBbungMatchingCardIds
+                                .includes(
+                                    card.card_id
+                                )
+                        ) {
+                            return false;
+                        }
+
+                        // 첫 튜토리얼 뻥 다음에는 5월 두 장으로
+                        // 일반 바가지를 연습하므로 5월은 버림 후보에서 제외한다.
+                        if (
+                            isBbungTutorial
+                            && card.month === 5
+                        ) {
+                            return false;
+                        }
+
+                        return true;
+                    }
                 );
 
             bbungMessage.textContent =
-                `${discardedCard.month}월 `
-                + "뻥 가능! "
-                + "추가로 버릴 카드 "
-                + "1장을 선택하세요.";
+                isBbungTutorial
+                    ? (
+                        `${discardedCard.month}월 뻥 가능! `
+                        + "금빛 5월 두 장은 다음 연습에 필요해요. "
+                        + "아래의 일반 카드 1장을 추가로 버리세요."
+                    )
+                    : (
+                        `${discardedCard.month}월 `
+                        + "뻥 가능! "
+                        + "추가로 버릴 카드 "
+                        + "1장을 선택하세요."
+                    );
 
             for (
                 const card
@@ -4149,6 +4183,17 @@ let currentGameId = null;
                     .appendChild(
                         button
                     );
+            }
+
+            if (
+                isBbungTutorial
+                && bbungPassButton
+            ) {
+                bbungPassButton.style.display =
+                    "none";
+            } else if (bbungPassButton) {
+                bbungPassButton.style.display =
+                    "";
             }
 
             bbungPanel.style.display =

@@ -3842,3 +3842,15 @@ body.game-mode .game-only-refresh {
         line-height: 1.3;
     }
 }
+
+
+/* Gameplay v20.2: BBUNG tutorial protects the 5-month pair for the next lesson */
+#bbungPanel .card {
+    cursor: pointer;
+}
+
+@media (max-width: 720px) and (orientation: portrait) {
+    #bbungPanel #bbungMessage {
+        line-height: 1.3;
+    }
+}

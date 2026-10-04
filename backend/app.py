@@ -4082,6 +4082,16 @@ def pass_bbung(game_id: str):
 
     state = game.state
 
+    if (
+        getattr(game, "tutorial_enabled", False)
+        and game.tutorial_stage == "BBUNG"
+    ):
+        return jsonify({
+            "ok": False,
+            "error": "TUTORIAL_BBUNG_REQUIRED",
+            "message": "이번 연습에서는 뻥을 직접 선언해 보세요.",
+        }), 400
+
     if state.status != GameStatus.PLAYING:
         return (
             jsonify(
@@ -4328,6 +4338,41 @@ def declare_human_bbung(
             400,
         )
 
+    # 튜토리얼 첫 뻥에서는 다음 단계인 일반 바가지를 위해
+    # 5월 두 장을 반드시 남겨야 한다.
+    # 프론트에서 숨기더라도 API 직접 호출로 깨질 수 있으므로
+    # 서버에서도 추가 버림 패를 검증한다.
+    if (
+        getattr(game, "tutorial_enabled", False)
+        and game.tutorial_stage == "BBUNG"
+    ):
+        extra_card = next(
+            (
+                card
+                for card in human_player.hand
+                if card.card_id
+                == extra_discard_card_id
+            ),
+            None,
+        )
+
+        if extra_card is None:
+            return jsonify({
+                "ok": False,
+                "error": "TUTORIAL_INVALID_EXTRA_DISCARD",
+                "message": "추가로 버릴 카드를 찾을 수 없습니다.",
+            }), 400
+
+        if extra_card.month == 5:
+            return jsonify({
+                "ok": False,
+                "error": "TUTORIAL_KEEP_FIVE_MONTH",
+                "message": (
+                    "5월 두 장은 다음 일반 바가지 연습에 필요합니다. "
+                    "금빛이 아닌 다른 카드를 버려주세요."
+                ),
+            }), 400
+
     engine = GameEngine(state)
 
     if game.mode == GameMode.ONLINE:
@@ -4354,6 +4399,17 @@ def declare_human_bbung(
             getattr(game, "tutorial_enabled", False)
             and game.tutorial_stage == "BBUNG"
         ):
+            remaining_months = sorted(
+                card.month
+                for card in human_player.hand
+            )
+
+            if remaining_months != [5, 5]:
+                raise ValueError(
+                    "튜토리얼 뻥 이후에는 5월 두 장이 남아야 합니다. "
+                    "금빛이 아닌 카드를 추가 버림으로 선택해 주세요."
+                )
+
             game.tutorial_stage = (
                 "GENERAL_BAGAJI"
             )
